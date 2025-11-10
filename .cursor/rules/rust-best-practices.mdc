@@ -1,0 +1,443 @@
+---
+description: Enforce Rust best practices and standard ecosystem choices
+globs: ["**/*.rs", "**/Cargo.toml"]
+alwaysApply: false
+---
+
+# Rust Best Practices
+
+## Error Handling
+
+### Application Code (anyhow)
+
+For application code, use **anyhow** for error handling:
+
+```rust
+use anyhow::{Context, Result};
+
+fn process_data(path: &str) -> Result<()> {
+    let content = std::fs::read_to_string(path)
+        .with_context(|| format!("Failed to read file: {}", path))?;
+
+    // Process content...
+    Ok(())
+}
+```
+
+### Library Code (thiserror)
+
+For library code, use **thiserror** to define custom error types:
+
+```rust
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum MyError {
+    #[error("Invalid input: {0}")]
+    InvalidInput(String),
+
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+
+    #[error("Parse error: {0}")]
+    Parse(#[from] serde_json::Error),
+}
+```
+
+**Rules:**
+
+- ✅ Use `anyhow::Result<T>` in application code
+- ✅ Use `thiserror` for library error types
+- ✅ Always use `?` operator for error propagation
+- ✅ Add context with `.with_context()` or `.context()` when appropriate
+- ❌ Do NOT use `unwrap()` or `expect()` in production code (only in tests or when absolutely certain)
+
+## Concurrency and Synchronization
+
+### Channels (mpsc)
+
+**Always prefer channels** for concurrent communication:
+
+```rust
+use std::sync::mpsc;
+use std::thread;
+
+let (tx, rx) = mpsc::channel();
+
+thread::spawn(move || {
+    tx.send("Hello from thread").unwrap();
+});
+
+let received = rx.recv().unwrap();
+```
+
+For async code, use `tokio::sync::mpsc`:
+
+```rust
+use tokio::sync::mpsc;
+
+let (mut tx, mut rx) = mpsc::channel(32);
+
+tokio::spawn(async move {
+    tx.send("Hello").await.unwrap();
+});
+
+while let Some(msg) = rx.recv().await {
+    // Process message
+}
+```
+
+**Rules:**
+
+- ✅ Prefer `mpsc::channel` for sync code
+- ✅ Prefer `tokio::sync::mpsc` for async code
+- ✅ Use `Arc<Mutex<T>>` only when shared mutable state is necessary
+- ✅ Consider `RwLock` for read-heavy workloads
+- ❌ Avoid `unsafe` blocks for synchronization
+
+## Async Runtime
+
+### Tokio
+
+Use **Tokio** as the async runtime:
+
+```rust
+use tokio;
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    // Async code here
+    Ok(())
+}
+```
+
+**Cargo.toml:**
+
+```toml
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+```
+
+**Rules:**
+
+- ✅ Use `tokio` for async runtime
+- ✅ Use `#[tokio::main]` for async main functions
+- ✅ Prefer async/await over manual Future handling
+- ✅ Use `tokio::spawn` for concurrent tasks
+- ❌ Do NOT use other async runtimes (async-std, smol) unless specifically required
+
+## Web and gRPC Frameworks
+
+### Web: Axum
+
+Use **Axum** for web applications:
+
+```rust
+use axum::{
+    routing::get,
+    Router,
+    Json,
+};
+use serde_json::{json, Value};
+
+async fn handler() -> Json<Value> {
+    Json(json!({ "message": "Hello, World!" }))
+}
+
+#[tokio::main]
+async fn main() {
+    let app = Router::new()
+        .route("/", get(handler));
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    axum::serve(listener, app).await.unwrap();
+}
+```
+
+### gRPC: Tonic
+
+Use **Tonic** for gRPC services:
+
+```rust
+use tonic::{transport::Server, Request, Response, Status};
+
+pub mod hello {
+    tonic::include_proto!("hello");
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let addr = "[::1]:50051".parse()?;
+    let greeter = MyGreeter::default();
+
+    Server::builder()
+        .add_service(hello::greeter_server::GreeterServer::new(greeter))
+        .serve(addr)
+        .await?;
+
+    Ok(())
+}
+```
+
+**Rules:**
+
+- ✅ Use `axum` for HTTP/web applications
+- ✅ Use `tonic` for gRPC services
+- ✅ Leverage Axum's type-safe routing and extractors
+- ❌ Do NOT use other web frameworks (actix-web, warp) unless specifically required
+
+## Standard Traits
+
+### Always Implement Standard Conversion Traits
+
+When converting between types, **always implement** the appropriate standard traits:
+
+### From / Into
+
+For infallible conversions:
+
+```rust
+use std::convert::From;
+
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+impl From<(i32, i32)> for Point {
+    fn from((x, y): (i32, i32)) -> Self {
+        Point { x, y }
+    }
+}
+
+// Now you can use:
+let point: Point = (10, 20).into();
+```
+
+### TryFrom / TryInto
+
+For fallible conversions:
+
+```rust
+use std::convert::TryFrom;
+
+struct PositiveNumber(i32);
+
+impl TryFrom<i32> for PositiveNumber {
+    type Error = String;
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        if value > 0 {
+            Ok(PositiveNumber(value))
+        } else {
+            Err(format!("{} is not positive", value))
+        }
+    }
+}
+```
+
+### FromStr
+
+For parsing from strings:
+
+```rust
+use std::str::FromStr;
+
+struct Email(String);
+
+impl FromStr for Email {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.contains('@') {
+            Ok(Email(s.to_string()))
+        } else {
+            Err("Invalid email format".to_string())
+        }
+    }
+}
+
+// Usage:
+let email: Email = "user@example.com".parse()?;
+```
+
+### Display / Debug
+
+Always implement `Display` and `Debug`:
+
+```rust
+use std::fmt;
+
+struct MyType {
+    value: i32,
+}
+
+impl fmt::Display for MyType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "MyType({})", self.value)
+    }
+}
+
+// Debug is usually derived:
+#[derive(Debug)]
+struct MyType {
+    value: i32,
+}
+```
+
+**Rules:**
+
+- ✅ Always implement `From` / `TryFrom` when converting between types
+- ✅ Always implement `FromStr` when parsing from strings
+- ✅ Always implement `Display` for user-facing output
+- ✅ Always derive or implement `Debug` for all types
+- ✅ Prefer `From` over manual conversion functions
+- ✅ Use `TryFrom` when conversion can fail
+- ❌ Do NOT create custom conversion functions when standard traits apply
+
+## Safety
+
+### No Unsafe Code
+
+**Never use `unsafe` blocks** unless absolutely necessary and well-documented:
+
+```rust
+// ❌ BAD - Avoid unsafe
+unsafe {
+    let ptr = raw_ptr.as_ref().unwrap();
+}
+
+// ✅ GOOD - Use safe alternatives
+if let Some(value) = raw_ptr.as_ref() {
+    // Use value safely
+}
+```
+
+**Rules:**
+
+- ✅ Always prefer safe Rust code
+- ✅ Use safe abstractions from standard library
+- ✅ Use `Option` and `Result` for error handling
+- ✅ Use `Arc`, `Mutex`, `RwLock` for shared state
+- ❌ Do NOT use `unsafe` blocks
+- ❌ Do NOT use raw pointers (`*const T`, `*mut T`)
+- ❌ Do NOT use `transmute` or other unsafe operations
+- ⚠️ If `unsafe` is absolutely necessary, document why and ensure soundness
+
+## Code Organization
+
+### Project Structure
+
+```
+project/
+├── Cargo.toml
+├── src/
+│   ├── main.rs              # Binary entry point
+│   ├── lib.rs               # Library entry point
+│   ├── error.rs             # Error types (thiserror)
+│   ├── config.rs            # Configuration
+│   ├── handlers/            # Request handlers
+│   │   └── mod.rs
+│   ├── models/              # Data models
+│   │   └── mod.rs
+│   ├── services/            # Business logic
+│   │   └── mod.rs
+│   └── utils/               # Utilities
+│       └── mod.rs
+└── tests/                   # Integration tests
+```
+
+### Module Organization
+
+```rust
+// lib.rs
+pub mod error;
+pub mod config;
+pub mod handlers;
+pub mod models;
+pub mod services;
+
+pub use error::{Error, Result};
+```
+
+## Testing
+
+### Unit Tests
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_conversion() {
+        let point: Point = (10, 20).into();
+        assert_eq!(point.x, 10);
+        assert_eq!(point.y, 20);
+    }
+}
+```
+
+### Integration Tests
+
+```rust
+// tests/integration_test.rs
+use my_lib::*;
+
+#[test]
+fn test_api() {
+    // Test code
+}
+```
+
+## Dependencies
+
+### Recommended Cargo.toml Structure
+
+```toml
+[package]
+name = "my-project"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Web framework
+axum = "0.8"
+
+# gRPC
+tonic = "0.11"
+prost = "0.13"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+[dev-dependencies]
+# Testing
+tokio-test = "0.4"
+```
+
+## Summary Checklist
+
+When writing Rust code, ensure:
+
+- ✅ Error handling: `anyhow` for apps, `thiserror` for libraries
+- ✅ Concurrency: Prefer channels (`mpsc`) over shared state
+- ✅ Async: Use `tokio` runtime
+- ✅ Web: Use `axum` for HTTP services
+- ✅ gRPC: Use `tonic` for gRPC services
+- ✅ Traits: Implement `From`, `TryFrom`, `FromStr` for conversions
+- ✅ Safety: Never use `unsafe` blocks
+- ✅ Testing: Write unit and integration tests
+- ✅ Documentation: Document public APIs with doc comments

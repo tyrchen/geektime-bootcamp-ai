@@ -18,11 +18,11 @@ export default function Hero({
 }: HeroProps) {
   const sectionStyle = backgroundImage
     ? {
-        backgroundImage: `linear-gradient(to bottom, rgba(249, 250, 251, 0.5), rgba(243, 244, 246, 0.6)), url(${backgroundImage})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-      }
+      backgroundImage: `linear-gradient(to bottom, rgba(249, 250, 251, 0.5), rgba(243, 244, 246, 0.6)), url(${backgroundImage})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+    }
     : {};
 
   return (
@@ -30,36 +30,59 @@ export default function Hero({
       className={`min-h-screen flex items-center justify-center ${backgroundClass}`}
       style={sectionStyle}
     >
+      <style>{`
+        .hero-dark-overlay .btn-secondary {
+          color: white !important;
+          border-color: white !important;
+          background-color: transparent !important;
+        }
+        .hero-dark-overlay .btn-secondary:hover {
+          background-color: white !important;
+          color: rgba(0, 0, 0, 0.9) !important;
+          border-color: white !important;
+        }
+      `}</style>
       <div className="container-custom text-center">
-        <motion.h1
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-4xl md:text-6xl font-bold text-primary mb-6"
+          className="hero-dark-overlay inline-block px-8 py-12 md:px-12 md:py-16 rounded-2xl backdrop-blur-md"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
+          }}
         >
-          {title}
-        </motion.h1>
-
-        {subtitle && (
-          <motion.p
+          <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-xl md:text-2xl text-text-secondary mb-8 max-w-2xl mx-auto"
+            transition={{ duration: 0.6 }}
+            className="text-4xl md:text-6xl font-bold text-white mb-6"
           >
-            {subtitle}
-          </motion.p>
-        )}
+            {title}
+          </motion.h1>
 
-        {children && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-          >
-            {children}
-          </motion.div>
-        )}
+          {subtitle && (
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="text-xl md:text-2xl text-gray-100 mb-8 max-w-2xl mx-auto"
+            >
+              {subtitle}
+            </motion.p>
+          )}
+
+          {children && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+            >
+              {children}
+            </motion.div>
+          )}
+        </motion.div>
       </div>
     </section>
   );
