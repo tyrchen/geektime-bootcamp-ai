@@ -60,7 +60,7 @@ jobs:
           uv run --with pytest --with pytest-cov --with pytest-asyncio --with httpx pytest -v --cov=app --cov-report=xml --cov-report=term
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           file: ./w1/project-alpha/backend/coverage.xml
           flags: backend
