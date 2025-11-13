@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@astrojs/mdx": "^4.3.10",
-    "astro": "^5.15.4",
+    "astro": "^5.15.6",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.553.0",
     "mermaid": "^11.12.1",
