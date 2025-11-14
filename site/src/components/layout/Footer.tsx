@@ -1,4 +1,5 @@
 import { Github, Twitter, Mail } from 'lucide-react';
+import { getUrl } from '../../utils/url';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -52,7 +53,7 @@ export default function Footer() {
                 {links.map((link) => (
                   <li key={link.href}>
                     <a
-                      href={link.href}
+                      href={getUrl(link.href)}
                       className="text-sm text-text-secondary hover:text-accent transition-colors"
                     >
                       {link.label}

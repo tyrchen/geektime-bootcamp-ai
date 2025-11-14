@@ -1,3 +1,5 @@
+import { getUrl } from "../utils/url";
+
 export interface ProjectData {
   id: string;
   number: number;
@@ -243,7 +245,7 @@ useEffect(() => {
       '前后端协作的开发流程',
       '使用 Alembic 管理数据库版本',
     ],
-    previewImage: '/projects/project-1/preview.png',
+    previewImage: getUrl('/projects/project-1/preview.png'),
     demoUrl: 'http://localhost:5173',
   },
   {
