@@ -1,0 +1,651 @@
+openapi: 3.1.0
+info:
+  title: Database Query Tool API
+  description: |
+    REST API for managing PostgreSQL database connections, executing SQL queries,
+    and generating SQL from natural language.
+
+    ## Key Features
+    - Add and manage multiple PostgreSQL database connections
+    - View database metadata (tables, views, columns)
+    - Execute SQL queries (SELECT only)
+    - Generate SQL from natural language
+    - Export query results
+
+    ## Authentication
+    No authentication required. This is a local tool for personal use.
+
+    ## camelCase Convention
+    All JSON responses use camelCase field names per project constitution.
+  version: 1.0.0
+  contact:
+    name: DB Query Tool
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development server
+
+tags:
+  - name: databases
+    description: Database connection management
+  - name: queries
+    description: Query execution and natural language processing
+
+paths:
+  /dbs:
+    get:
+      tags: [databases]
+      summary: List all database connections
+      description: Returns a list of all saved database connections
+      operationId: listDatabases
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [databases]
+                properties:
+                  databases:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DatabaseConnection'
+              example:
+                databases:
+                  - name: my-postgres
+                    url: postgresql://user:pass@localhost:5432/mydb
+                    description: Production database
+                    createdAt: "2025-11-16T10:00:00Z"
+                    updatedAt: "2025-11-16T15:30:00Z"
+                    lastConnectedAt: "2025-11-16T15:30:00Z"
+                    status: active
+
+  /dbs/{name}:
+    parameters:
+      - $ref: '#/components/parameters/DatabaseName'
+
+    get:
+      tags: [databases]
+      summary: Get database metadata
+      description: |
+        Returns cached metadata for the specified database including tables, views, and columns.
+        If cache is stale (>24 hours), triggers automatic refresh.
+      operationId: getDatabaseMetadata
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatabaseMetadataResponse'
+        '404':
+          $ref: '#/components/responses/DatabaseNotFound'
+        '500':
+          $ref: '#/components/responses/ConnectionError'
+
+    put:
+      tags: [databases]
+      summary: Create or update database connection
+      description: |
+        Creates a new database connection or updates an existing one (idempotent).
+        Tests the connection before saving.
+      operationId: createOrUpdateDatabase
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatabaseConnectionInput'
+            example:
+              url: postgresql://postgres:postgres@localhost:5432/mydb
+              description: My local database
+      responses:
+        '200':
+          description: Database connection updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatabaseConnection'
+        '201':
+          description: Database connection created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatabaseConnection'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/ConnectionError'
+
+    delete:
+      tags: [databases]
+      summary: Delete database connection
+      description: Removes the database connection and all associated metadata from local storage
+      operationId: deleteDatabase
+      responses:
+        '204':
+          description: Database connection deleted successfully
+        '404':
+          $ref: '#/components/responses/DatabaseNotFound'
+
+  /dbs/{name}/refresh:
+    parameters:
+      - $ref: '#/components/parameters/DatabaseName'
+
+    post:
+      tags: [databases]
+      summary: Refresh database metadata
+      description: Forces a refresh of database metadata by re-querying PostgreSQL system tables
+      operationId: refreshMetadata
+      responses:
+        '200':
+          description: Metadata refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatabaseMetadataResponse'
+        '404':
+          $ref: '#/components/responses/DatabaseNotFound'
+        '500':
+          $ref: '#/components/responses/ConnectionError'
+
+  /dbs/{name}/query:
+    parameters:
+      - $ref: '#/components/parameters/DatabaseName'
+
+    post:
+      tags: [queries]
+      summary: Execute SQL query
+      description: |
+        Executes a SQL query against the specified database.
+
+        ## Validation Rules
+        - Only SELECT statements are allowed
+        - LIMIT 1000 is automatically added if not specified
+        - Query timeout: 30 seconds
+
+        ## Security
+        - SQL is parsed and validated using sqlglot
+        - INSERT/UPDATE/DELETE/DROP statements are rejected
+        - Dangerous functions are blocked
+      operationId: executeQuery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryInput'
+            examples:
+              simple_select:
+                summary: Simple SELECT query
+                value:
+                  sql: SELECT * FROM users
+              with_limit:
+                summary: SELECT with LIMIT
+                value:
+                  sql: SELECT id, name, email FROM users WHERE status = 'active' LIMIT 10
+              complex_query:
+                summary: Complex query with JOIN
+                value:
+                  sql: |
+                    SELECT u.name, COUNT(o.id) as order_count
+                    FROM users u
+                    LEFT JOIN orders o ON u.id = o.user_id
+                    GROUP BY u.name
+                    ORDER BY order_count DESC
+      responses:
+        '200':
+          description: Query executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryResult'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/DatabaseNotFound'
+        '500':
+          $ref: '#/components/responses/QueryExecutionError'
+
+  /dbs/{name}/query/natural:
+    parameters:
+      - $ref: '#/components/parameters/DatabaseName'
+
+    post:
+      tags: [queries]
+      summary: Generate SQL from natural language
+      description: |
+        Converts a natural language query description to SQL using LLM.
+        The generated SQL is returned but NOT executed automatically.
+
+        ## Process
+        1. User provides natural language description
+        2. System retrieves database metadata
+        3. LLM generates SQL based on schema context
+        4. Returns generated SQL for user review
+        5. User can edit and execute via /query endpoint
+      operationId: generateSqlFromNaturalLanguage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NaturalLanguageInput'
+            examples:
+              simple:
+                summary: Simple query
+                value:
+                  prompt: 查询所有活跃用户
+              complex:
+                summary: Complex query
+                value:
+                  prompt: 显示每个用户的订单总金额，按金额降序排列，只显示前10个用户
+      responses:
+        '200':
+          description: SQL generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeneratedSqlResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/DatabaseNotFound'
+        '500':
+          $ref: '#/components/responses/LLMError'
+
+  /dbs/{name}/history:
+    parameters:
+      - $ref: '#/components/parameters/DatabaseName'
+
+    get:
+      tags: [queries]
+      summary: Get query history
+      description: Returns the last 50 queries executed against this database
+      operationId: getQueryHistory
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of history entries to return (default 50, max 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [history]
+                properties:
+                  history:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/QueryHistoryEntry'
+        '404':
+          $ref: '#/components/responses/DatabaseNotFound'
+
+components:
+  parameters:
+    DatabaseName:
+      name: name
+      in: path
+      required: true
+      description: Unique database connection name
+      schema:
+        type: string
+        pattern: '^[a-zA-Z0-9-_]+$'
+        minLength: 2
+        maxLength: 50
+      example: my-postgres
+
+  schemas:
+    DatabaseConnection:
+      type: object
+      required: [name, url, createdAt, updatedAt, status]
+      properties:
+        name:
+          type: string
+          pattern: '^[a-zA-Z0-9-_]+$'
+          minLength: 2
+          maxLength: 50
+          description: Unique identifier for the database connection
+          example: my-postgres
+        url:
+          type: string
+          format: uri
+          pattern: '^postgresql://'
+          description: PostgreSQL connection URL
+          example: postgresql://user:pass@localhost:5432/mydb
+        description:
+          type: string
+          maxLength: 200
+          nullable: true
+          description: Optional description of the database
+          example: Production database
+        createdAt:
+          type: string
+          format: date-time
+          description: When the connection was created
+        updatedAt:
+          type: string
+          format: date-time
+          description: When the connection was last updated
+        lastConnectedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the connection was last successfully tested
+        status:
+          type: string
+          enum: [active, inactive, error]
+          description: Current status of the connection
+
+    DatabaseConnectionInput:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          format: uri
+          pattern: '^postgresql://'
+          description: PostgreSQL connection URL
+          example: postgresql://postgres:postgres@localhost:5432/mydb
+        description:
+          type: string
+          maxLength: 200
+          nullable: true
+          description: Optional description
+
+    DatabaseMetadataResponse:
+      type: object
+      required: [databaseName, tables, views, fetchedAt, isStale]
+      properties:
+        databaseName:
+          type: string
+          example: my-postgres
+        tables:
+          type: array
+          items:
+            $ref: '#/components/schemas/TableMetadata'
+        views:
+          type: array
+          items:
+            $ref: '#/components/schemas/TableMetadata'
+        fetchedAt:
+          type: string
+          format: date-time
+          description: When metadata was last fetched
+        isStale:
+          type: boolean
+          description: True if metadata is older than 24 hours
+
+    TableMetadata:
+      type: object
+      required: [name, type, columns]
+      properties:
+        name:
+          type: string
+          maxLength: 63
+          example: users
+        type:
+          type: string
+          enum: [table, view]
+        columns:
+          type: array
+          items:
+            $ref: '#/components/schemas/ColumnMetadata'
+        rowCount:
+          type: integer
+          nullable: true
+          description: Estimated row count (tables only)
+          example: 1523
+        schemaName:
+          type: string
+          default: public
+          example: public
+
+    ColumnMetadata:
+      type: object
+      required: [name, dataType, nullable, primaryKey]
+      properties:
+        name:
+          type: string
+          maxLength: 63
+          example: id
+        dataType:
+          type: string
+          description: PostgreSQL data type
+          example: integer
+        nullable:
+          type: boolean
+          example: false
+        primaryKey:
+          type: boolean
+          example: true
+        unique:
+          type: boolean
+          default: false
+        defaultValue:
+          type: string
+          nullable: true
+          example: "nextval('users_id_seq'::regclass)"
+        comment:
+          type: string
+          nullable: true
+
+    QueryInput:
+      type: object
+      required: [sql]
+      properties:
+        sql:
+          type: string
+          description: SQL SELECT query to execute
+          example: SELECT * FROM users WHERE status = 'active'
+
+    QueryResult:
+      type: object
+      required: [columns, rows, rowCount, executionTimeMs, sql]
+      properties:
+        columns:
+          type: array
+          items:
+            $ref: '#/components/schemas/QueryColumn'
+        rows:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+            description: Row data as key-value pairs
+          example:
+            - id: 1
+              name: Alice
+              email: alice@example.com
+            - id: 2
+              name: Bob
+              email: bob@example.com
+        rowCount:
+          type: integer
+          description: Total number of rows returned
+          example: 2
+        executionTimeMs:
+          type: integer
+          description: Query execution time in milliseconds
+          example: 45
+        sql:
+          type: string
+          description: Actual SQL executed (may have LIMIT added)
+          example: SELECT * FROM users WHERE status = 'active' LIMIT 1000
+
+    QueryColumn:
+      type: object
+      required: [name, dataType]
+      properties:
+        name:
+          type: string
+          example: id
+        dataType:
+          type: string
+          example: integer
+
+    NaturalLanguageInput:
+      type: object
+      required: [prompt]
+      properties:
+        prompt:
+          type: string
+          minLength: 5
+          maxLength: 500
+          description: Natural language description of the desired query
+          example: 查询所有活跃用户的姓名和邮箱
+
+    GeneratedSqlResponse:
+      type: object
+      required: [sql, explanation]
+      properties:
+        sql:
+          type: string
+          description: Generated SQL query
+          example: SELECT name, email FROM users WHERE status = 'active' LIMIT 1000
+        explanation:
+          type: string
+          description: Explanation of what the query does
+          example: This query retrieves the name and email of all active users, limited to 1000 rows.
+
+    QueryHistoryEntry:
+      type: object
+      required: [id, databaseName, sqlText, executedAt, success, querySource]
+      properties:
+        id:
+          type: integer
+          example: 123
+        databaseName:
+          type: string
+          example: my-postgres
+        sqlText:
+          type: string
+          example: SELECT * FROM users WHERE status = 'active' LIMIT 100
+        executedAt:
+          type: string
+          format: date-time
+        executionTimeMs:
+          type: integer
+          nullable: true
+          example: 125
+        rowCount:
+          type: integer
+          nullable: true
+          example: 87
+        success:
+          type: boolean
+          example: true
+        errorMessage:
+          type: string
+          nullable: true
+        querySource:
+          type: string
+          enum: [manual, natural_language]
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum:
+                - VALIDATION_ERROR
+                - CONNECTION_ERROR
+                - QUERY_EXECUTION_ERROR
+                - LLM_ERROR
+                - DATABASE_NOT_FOUND
+                - INTERNAL_ERROR
+            message:
+              type: string
+              description: Human-readable error message
+            details:
+              type: object
+              additionalProperties: true
+              description: Additional error context
+
+  responses:
+    ValidationError:
+      description: Invalid request (SQL validation failed, invalid format, etc.)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: VALIDATION_ERROR
+              message: Only SELECT statements are allowed
+              details:
+                statementType: INSERT
+                line: 1
+                column: 0
+
+    ConnectionError:
+      description: Failed to connect to database
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: CONNECTION_ERROR
+              message: Failed to connect to PostgreSQL database
+              details:
+                reason: Connection timeout
+                host: localhost
+                port: 5432
+
+    QueryExecutionError:
+      description: Query execution failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: QUERY_EXECUTION_ERROR
+              message: Error executing query
+              details:
+                postgresError: relation "nonexistent_table" does not exist
+                line: 1
+
+    LLMError:
+      description: LLM service error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: LLM_ERROR
+              message: Failed to generate SQL from natural language
+              details:
+                reason: OpenAI API rate limit exceeded
+
+    DatabaseNotFound:
+      description: Database connection not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: DATABASE_NOT_FOUND
+              message: Database connection 'nonexistent-db' not found
+
+  securitySchemes: {}
+
+security: []
