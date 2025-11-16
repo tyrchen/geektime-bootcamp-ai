@@ -121,7 +121,14 @@ export const DatabaseShow: React.FC = () => {
 
   return (
     <Show
-      title={`Query - ${metadata.databaseName}`}
+      title={
+        <Space>
+          <DatabaseOutlined />
+          <Text strong style={{ fontSize: 20 }}>
+            {metadata.databaseName.toUpperCase()}
+          </Text>
+        </Space>
+      }
       headerButtons={({ defaultButtons }) => (
         <>
           {defaultButtons}
@@ -129,44 +136,62 @@ export const DatabaseShow: React.FC = () => {
         </>
       )}
     >
-      <Row gutter={16} style={{ marginBottom: 16 }}>
+      <Row gutter={24} style={{ marginBottom: 24 }}>
         <Col span={8}>
-          <Statistic
-            title="Tables"
-            value={metadata.tables.length}
-            prefix={<TableOutlined />}
-          />
+          <Card style={{ textAlign: "center", borderWidth: 2 }}>
+            <Statistic
+              title="TABLES"
+              value={metadata.tables.length}
+              prefix={<TableOutlined style={{ fontSize: 24 }} />}
+              valueStyle={{ fontSize: 36, fontWeight: 700 }}
+            />
+          </Card>
         </Col>
         <Col span={8}>
-          <Statistic
-            title="Views"
-            value={metadata.views.length}
-            prefix={<DatabaseOutlined />}
-          />
+          <Card style={{ textAlign: "center", borderWidth: 2 }}>
+            <Statistic
+              title="VIEWS"
+              value={metadata.views.length}
+              prefix={<DatabaseOutlined style={{ fontSize: 24 }} />}
+              valueStyle={{ fontSize: 36, fontWeight: 700 }}
+            />
+          </Card>
         </Col>
         <Col span={8}>
-          <Statistic
-            title="Total Rows"
-            value={queryResult?.rowCount || 0}
-          />
+          <Card style={{ textAlign: "center", borderWidth: 2 }}>
+            <Statistic
+              title="RESULT ROWS"
+              value={queryResult?.rowCount || 0}
+              valueStyle={{ fontSize: 36, fontWeight: 700, color: queryResult ? "#16AA98" : "#A1A1A1" }}
+            />
+          </Card>
         </Col>
       </Row>
 
-      <Row gutter={16}>
+      <Row gutter={24}>
         <Col span={6}>
           <Card
-            title="Database Schema"
+            title="SCHEMA"
             extra={
               <Input
-                placeholder="Search tables..."
+                placeholder="Search..."
                 prefix={<SearchOutlined />}
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 allowClear
-                size="small"
+                size="middle"
+                style={{ width: 140 }}
               />
             }
-            style={{ height: "calc(100vh - 280px)", overflow: "auto" }}
+            style={{
+              height: "calc(100vh - 340px)",
+              borderWidth: 2,
+            }}
+            bodyStyle={{
+              height: "calc(100% - 57px)",
+              overflow: "auto",
+              padding: "16px"
+            }}
           >
             <MetadataTree
               metadata={metadata}
@@ -177,14 +202,18 @@ export const DatabaseShow: React.FC = () => {
         </Col>
 
         <Col span={18}>
-          <Space direction="vertical" style={{ width: "100%" }} size="middle">
+          <Space direction="vertical" style={{ width: "100%" }} size={24}>
             <Card
               title={
                 <Space>
-                  <Text>SQL Editor</Text>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    Query executed at {queryResult ? new Date().toLocaleTimeString() : "-"}
+                  <Text strong style={{ fontSize: 14, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                    SQL EDITOR
                   </Text>
+                  {queryResult && (
+                    <Text type="secondary" style={{ fontSize: 12, textTransform: "none" }}>
+                      • Last executed: {new Date().toLocaleTimeString()}
+                    </Text>
+                  )}
                 </Space>
               }
               extra={
@@ -193,15 +222,23 @@ export const DatabaseShow: React.FC = () => {
                   icon={<PlayCircleOutlined />}
                   onClick={handleExecuteQuery}
                   loading={executing}
+                  size="large"
+                  style={{
+                    height: 44,
+                    paddingLeft: 24,
+                    paddingRight: 24,
+                    fontWeight: 700,
+                  }}
                 >
-                  Execute Query
+                  EXECUTE
                 </Button>
               }
+              style={{ borderWidth: 2 }}
             >
               <SqlEditor
                 value={sql}
                 onChange={(value) => setSql(value || "")}
-                height="200px"
+                height="240px"
               />
             </Card>
 
@@ -209,18 +246,21 @@ export const DatabaseShow: React.FC = () => {
               <Card
                 title={
                   <Space>
-                    <Text>Query Results</Text>
+                    <Text strong style={{ fontSize: 14, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                      RESULTS
+                    </Text>
                     <Text type="secondary">
-                      {queryResult.rowCount} rows in {queryResult.executionTimeMs}ms
+                      • {queryResult.rowCount} rows • {queryResult.executionTimeMs}ms
                     </Text>
                   </Space>
                 }
                 extra={
                   <Space>
-                    <Button size="small">Export CSV</Button>
-                    <Button size="small">Export JSON</Button>
+                    <Button size="middle">EXPORT CSV</Button>
+                    <Button size="middle">EXPORT JSON</Button>
                   </Space>
                 }
+                style={{ borderWidth: 2 }}
               >
                 <Table
                   columns={tableColumns}
@@ -230,9 +270,11 @@ export const DatabaseShow: React.FC = () => {
                     pageSize: 50,
                     showSizeChanger: true,
                     showTotal: (total) => `Total ${total} rows`,
+                    pageSizeOptions: [10, 20, 50, 100],
                   }}
-                  scroll={{ x: "max-content", y: 400 }}
-                  size="small"
+                  scroll={{ x: "max-content", y: 450 }}
+                  size="middle"
+                  bordered
                 />
               </Card>
             )}

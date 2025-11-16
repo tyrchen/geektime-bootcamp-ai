@@ -1,0 +1,241 @@
+/**
+ * MotherDuck-inspired Design Tokens for DB Query Tool
+ * Based on .cursor/rules/style.md
+ */
+
+:root {
+  /* ===== Color System ===== */
+  --md-cream: #F4EFEA;        /* page shell */
+  --md-sunbeam: #FFDE00;      /* eyebrow, promo strips */
+  --md-sunbeam-dark: #E3C300; /* hover/pressed */
+  --md-sky: #6FC2FF;          /* primary CTA fill */
+  --md-sky-strong: #2BA5FF;   /* focus rings, active inputs */
+  --md-soft-blue: #EBF9FF;    /* secondary sections */
+  --md-cloud: #FFFFFF;        /* cards & quotes */
+  --md-fog: #F8F8F7;          /* form fills */
+  --md-ink: #383838;          /* primary text */
+  --md-slate: #A1A1A1;        /* secondary text */
+  --md-graphite: #000000;     /* structural strokes */
+  --md-shadow: rgba(0, 0, 0, 0.08); /* hover shadows */
+  --md-grid-line: #E4D6C3;    /* graph-paper overlays */
+
+  /* ===== Typography ===== */
+  --font-family-primary: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-family-mono: "Monaco", "Menlo", "Consolas", monospace;
+
+  --font-hero: 48px;
+  --font-h1: 32px;
+  --font-h2: 24px;
+  --font-h3: 18px;
+  --font-body: 15px;
+  --font-ui: 14px;
+  --font-code: 16px;
+
+  --line-height-tight: 1.2;
+  --line-height-heading: 1.25;
+  --line-height-body: 1.5;
+  --line-height-relaxed: 1.6;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+
+  /* ===== Spacing (8px grid) ===== */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 64px;
+  --space-11: 80px;
+  --space-12: 96px;
+  --space-section: 120px;
+
+  /* ===== Borders & Shadows ===== */
+  --radius-micro: 2px;
+  --radius-small: 4px;
+  --border-width: 2px;
+  --border-strong: 2px solid var(--md-graphite);
+  --shadow-press: 0 7px 0 var(--md-graphite);
+  --shadow-hover: 0 4px 12px var(--md-shadow);
+
+  /* ===== Transitions ===== */
+  --transition-quick: 120ms ease-in-out;
+  --transition-default: 240ms ease;
+  --translate-hover: translate(7px, -7px);
+
+  /* ===== Z-index layers ===== */
+  --z-base: 0;
+  --z-dropdown: 1000;
+  --z-sticky: 1100;
+  --z-modal: 1200;
+  --z-tooltip: 1300;
+}
+
+/* ===== Global Styles ===== */
+body {
+  background: var(--md-cream);
+  color: var(--md-ink);
+  font-family: var(--font-family-primary);
+  font-size: var(--font-body);
+  line-height: var(--line-height-body);
+  border-top: 3px solid var(--md-graphite);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+#root {
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ===== Ant Design Overrides ===== */
+.ant-layout {
+  background: var(--md-cream) !important;
+}
+
+.ant-layout-header {
+  background: var(--md-cloud) !important;
+  border-bottom: var(--border-strong) !important;
+}
+
+.ant-layout-sider {
+  background: var(--md-cloud) !important;
+  border-right: var(--border-strong) !important;
+}
+
+.ant-card {
+  background: var(--md-cloud);
+  border: var(--border-strong);
+  border-radius: var(--radius-micro);
+  box-shadow: none;
+}
+
+.ant-card-head {
+  border-bottom: var(--border-strong);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: var(--font-ui);
+}
+
+.ant-btn-primary {
+  background: var(--md-sky);
+  border: var(--border-strong);
+  border-radius: var(--radius-micro);
+  color: var(--md-ink);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  transition: transform var(--transition-quick), box-shadow var(--transition-quick);
+  box-shadow: none;
+}
+
+.ant-btn-primary:hover,
+.ant-btn-primary:focus {
+  background: var(--md-sky);
+  border-color: var(--md-graphite);
+  color: var(--md-ink);
+  transform: var(--translate-hover);
+  box-shadow: var(--shadow-press);
+}
+
+.ant-btn-default {
+  border: var(--border-strong);
+  border-radius: var(--radius-micro);
+  background: var(--md-cloud);
+  transition: transform var(--transition-quick);
+}
+
+.ant-btn-default:hover {
+  border-color: var(--md-sky-strong);
+  transform: translateY(-2px);
+}
+
+.ant-input,
+.ant-input-affix-wrapper {
+  background: var(--md-fog);
+  border: var(--border-strong);
+  border-radius: var(--radius-micro);
+  font-size: var(--font-body);
+}
+
+.ant-input:focus,
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper-focused {
+  border-color: var(--md-sky-strong);
+  box-shadow: none;
+}
+
+.ant-table {
+  font-size: var(--font-body);
+}
+
+.ant-table-thead > tr > th {
+  background: var(--md-fog);
+  border-bottom: var(--border-strong);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 13px;
+}
+
+.ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--md-grid-line);
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: var(--md-soft-blue);
+}
+
+.ant-statistic-title {
+  color: var(--md-slate);
+  font-size: var(--font-ui);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ant-statistic-content {
+  font-size: 32px;
+  font-weight: var(--font-weight-bold);
+  color: var(--md-ink);
+}
+
+.ant-tree {
+  background: transparent;
+  font-size: 14px;
+}
+
+.ant-tree .ant-tree-node-content-wrapper {
+  padding: var(--space-2);
+  transition: background var(--transition-quick);
+}
+
+.ant-tree .ant-tree-node-content-wrapper:hover {
+  background: var(--md-soft-blue);
+}
+
+.ant-tree-title {
+  font-size: 14px;
+}
+
+.ant-tag {
+  border-radius: var(--radius-micro);
+  border: 1px solid var(--md-graphite);
+  font-size: 11px;
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.ant-message-notice-content {
+  background: var(--md-cloud);
+  border: var(--border-strong);
+  border-radius: var(--radius-micro);
+  box-shadow: var(--shadow-hover);
+}

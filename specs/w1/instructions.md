@@ -26,3 +26,15 @@
 ## 优化 UI
 
 按照 apple website 的设计风格，think ultra hard，优化 UI 和 UX。
+
+## 前端风格
+
+使用 style.md 中的风格，学习 ./site 中 token 的定义，优化整体的 UI 和 UX。
+
+## 侧边栏
+
+侧边栏目前用途不大，可以放所有已有的数据库，并且把添加数据库，删除已有的数据库的功能放在侧边栏。侧边栏也要使用新的 token 风格。然后主页直接显示第一个数据库的 metadata 信息和查询界面，这样用户可以减少一次点击进入到 database display 页面。一个页面囊括所有功能。
+
+## schema tree view
+
+[Image #2] schema 边栏应该直接铺满除了db name 外整个高度，db name + refresh button 是一个 top bar，使用偏黄色的 token style color；schema 内部的 treeview 应该铺满整个 schema；[Image #3] 这些 metrics 和main sql editor 放在一个容器，他们可以更小一些，不需要占这么多空间。

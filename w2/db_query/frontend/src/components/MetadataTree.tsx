@@ -35,14 +35,18 @@ export const MetadataTree: React.FC<MetadataTreeProps> = ({
       title: (
         <span
           onClick={() => onTableClick?.(item)}
-          style={{ cursor: onTableClick ? "pointer" : "default" }}
+          style={{
+            cursor: onTableClick ? "pointer" : "default",
+            fontSize: "15px",
+            fontWeight: 600,
+          }}
         >
-          <Text strong>{item.name}</Text>
-          <Tag color={type === "table" ? "blue" : "green"} style={{ marginLeft: 8 }}>
+          <Text strong style={{ fontSize: "15px" }}>{item.name}</Text>
+          <Tag color={type === "table" ? "blue" : "green"} style={{ marginLeft: 8, fontSize: "11px" }}>
             {type}
           </Tag>
           {item.rowCount !== null && item.rowCount !== undefined && (
-            <Tag color="default" style={{ marginLeft: 4 }}>
+            <Tag style={{ marginLeft: 4, fontSize: "11px" }}>
               {item.rowCount} rows
             </Tag>
           )}
@@ -51,23 +55,23 @@ export const MetadataTree: React.FC<MetadataTreeProps> = ({
       key: `${type}-${item.name}`,
       children: item.columns.map((col) => ({
         title: (
-          <span>
+          <span style={{ fontSize: "14px" }}>
             <strong>{col.name}</strong>
-            <Tag color="default" style={{ marginLeft: 8 }}>
+            <Tag style={{ marginLeft: 8, fontSize: "10px" }}>
               {col.dataType}
             </Tag>
             {col.primaryKey && (
-              <Tag color="red" style={{ marginLeft: 4 }}>
+              <Tag color="red" style={{ marginLeft: 4, fontSize: "10px" }}>
                 PK
               </Tag>
             )}
             {col.unique && (
-              <Tag color="orange" style={{ marginLeft: 4 }}>
+              <Tag color="orange" style={{ marginLeft: 4, fontSize: "10px" }}>
                 UNIQUE
               </Tag>
             )}
             {!col.nullable && (
-              <Tag color="purple" style={{ marginLeft: 4 }}>
+              <Tag color="purple" style={{ marginLeft: 4, fontSize: "10px" }}>
                 NOT NULL
               </Tag>
             )}
@@ -96,12 +100,14 @@ export const MetadataTree: React.FC<MetadataTreeProps> = ({
   );
 
   return (
-    <Tree
-      treeData={treeData}
-      defaultExpandAll={true}
-      showLine={{ showLeafIcon: false }}
-      height={600}
-      style={{ overflow: "auto", fontSize: "14px" }}
-    />
+    <div style={{ height: "100%", overflow: "auto" }}>
+      <Tree
+        treeData={treeData}
+        defaultExpandAll={true}
+        showLine={{ showLeafIcon: false }}
+        style={{ fontSize: "15px" }}
+        className="metadata-tree"
+      />
+    </div>
   );
 };
