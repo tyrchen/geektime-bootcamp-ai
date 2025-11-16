@@ -59,4 +59,8 @@ POST /api/v1/dbs/{name}/query/natural
 
 ## 测试
 
-运行后端和前端，根据 @test.rest  用 curl 测试后端已实现的路由；然后用 playwright 代开前端进行测试，任何测试问题，think ultra hard and fix
+仔细阅读 ./w2/db_query 下面的代码，然后运行后端和前端，根据@w2/db_query/fixtures/test.rest 用 curl 测试后端已实现的路由；然后用 playwright 开前端进行测试，任何测试问题，think ultra hard and fix
+
+## db migration & unit test
+
+`make setup` 会出错，修复它；确保前后端 unit test 都通过。

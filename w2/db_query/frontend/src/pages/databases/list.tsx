@@ -56,9 +56,9 @@ export const DatabaseList: React.FC = () => {
           dataIndex="actions"
           render={(_, record: DatabaseConnection) => (
             <Space>
-              <ShowButton hideText size="small" recordItemId={record.name} />
-              <EditButton hideText size="small" recordItemId={record.name} />
-              <DeleteButton hideText size="small" recordItemId={record.name} />
+              <ShowButton hideText size="small" recordItemId={record.name} resource="databases" />
+              <EditButton hideText size="small" recordItemId={record.name} resource="databases" />
+              <DeleteButton hideText size="small" recordItemId={record.name} resource="databases" />
             </Space>
           )}
         />

@@ -1,7 +1,7 @@
 """API request/response schemas with camelCase aliases."""
 
 from pydantic import BaseModel, Field
-from typing import Literal
+from typing import Literal, Any
 from datetime import datetime
 from app.models.query import QuerySource
 
@@ -77,7 +77,7 @@ class QueryResult(BaseModel):
     """Query result response schema."""
 
     columns: list[QueryColumn]
-    rows: list[dict[str, any]]
+    rows: list[dict[str, Any]]
     row_count: int = Field(..., alias="rowCount")
     execution_time_ms: int = Field(..., alias="executionTimeMs")
     sql: str
@@ -115,4 +115,4 @@ class GeneratedSqlResponse(BaseModel):
 class ErrorResponse(BaseModel):
     """Error response schema."""
 
-    error: dict[str, any]
+    error: dict[str, Any]

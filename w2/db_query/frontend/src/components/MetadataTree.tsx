@@ -1,21 +1,43 @@
-/** Database metadata tree view component. */
+/** Database metadata tree view component with search and click support. */
 
-import React from "react";
-import { Tree, Tag } from "antd";
+import React, { useMemo } from "react";
+import { Tree, Tag, Typography } from "antd";
 import { DatabaseMetadata, TableMetadata } from "../types/metadata";
+
+const { Text } = Typography;
 
 interface MetadataTreeProps {
   metadata: DatabaseMetadata;
+  searchText?: string;
+  onTableClick?: (table: TableMetadata) => void;
 }
 
-export const MetadataTree: React.FC<MetadataTreeProps> = ({ metadata }) => {
+export const MetadataTree: React.FC<MetadataTreeProps> = ({
+  metadata,
+  searchText = "",
+  onTableClick,
+}) => {
   const { tables, views } = metadata;
 
+  const filterItems = (items: TableMetadata[]) => {
+    if (!searchText) return items;
+    const lowerSearch = searchText.toLowerCase();
+    return items.filter(
+      (item) =>
+        item.name.toLowerCase().includes(lowerSearch) ||
+        item.columns.some((col) => col.name.toLowerCase().includes(lowerSearch))
+    );
+  };
+
   const buildTreeData = (items: TableMetadata[], type: "table" | "view") => {
-    return items.map((item) => ({
+    const filtered = filterItems(items);
+    return filtered.map((item) => ({
       title: (
-        <span>
-          {item.name}
+        <span
+          onClick={() => onTableClick?.(item)}
+          style={{ cursor: onTableClick ? "pointer" : "default" }}
+        >
+          <Text strong>{item.name}</Text>
           <Tag color={type === "table" ? "blue" : "green"} style={{ marginLeft: 8 }}>
             {type}
           </Tag>
@@ -52,28 +74,34 @@ export const MetadataTree: React.FC<MetadataTreeProps> = ({ metadata }) => {
           </span>
         ),
         key: `${type}-${item.name}-${col.name}`,
+        isLeaf: true,
       })),
     }));
   };
 
-  const treeData = [
-    {
-      title: "Tables",
-      key: "tables",
-      children: buildTreeData(tables, "table"),
-    },
-    {
-      title: "Views",
-      key: "views",
-      children: buildTreeData(views, "view"),
-    },
-  ];
+  const treeData = useMemo(
+    () => [
+      {
+        title: `Tables (${filterItems(tables).length})`,
+        key: "tables",
+        children: buildTreeData(tables, "table"),
+      },
+      {
+        title: `Views (${filterItems(views).length})`,
+        key: "views",
+        children: buildTreeData(views, "view"),
+      },
+    ],
+    [tables, views, searchText]
+  );
 
   return (
     <Tree
       treeData={treeData}
-      defaultExpandAll={false}
+      defaultExpandAll={true}
       showLine={{ showLeafIcon: false }}
+      height={600}
+      style={{ overflow: "auto", fontSize: "14px" }}
     />
   );
 };

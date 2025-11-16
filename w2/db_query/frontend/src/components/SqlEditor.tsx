@@ -1,8 +1,8 @@
 /** Monaco-based SQL editor component. */
 
 import { useRef } from "react";
-import Editor from "@monaco-editor/react";
-import * as monaco from "monaco-editor";
+import Editor, { type Monaco } from "@monaco-editor/react";
+import type { editor } from "monaco-editor";
 
 interface SqlEditorProps {
   value: string;
@@ -17,12 +17,15 @@ export const SqlEditor: React.FC<SqlEditorProps> = ({
   height = "300px",
   readOnly = false,
 }) => {
-  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const monacoRef = useRef<Monaco | null>(null);
 
   const handleEditorDidMount = (
-    editor: monaco.editor.IStandaloneCodeEditor
+    editor: editor.IStandaloneCodeEditor,
+    monaco: Monaco
   ) => {
     editorRef.current = editor;
+    monacoRef.current = monaco;
 
     // Configure SQL language features
     monaco.languages.setLanguageConfiguration("sql", {
@@ -175,13 +178,14 @@ export const SqlEditor: React.FC<SqlEditorProps> = ({
         readOnly,
         minimap: { enabled: false },
         scrollBeyondLastLine: false,
-        fontSize: 14,
+        fontSize: 16,
         lineNumbers: "on",
         roundedSelection: false,
         cursorStyle: "line",
         automaticLayout: true,
         tabSize: 2,
         wordWrap: "on",
+        lineHeight: 24,
       }}
       onMount={handleEditorDidMount}
     />
