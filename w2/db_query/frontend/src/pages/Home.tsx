@@ -13,18 +13,22 @@ import {
   Col,
   Typography,
   Empty,
+  Tabs,
+  Modal,
 } from "antd";
 import {
   PlayCircleOutlined,
   SearchOutlined,
   DatabaseOutlined,
   ReloadOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import { apiClient } from "../services/api";
 import { DatabaseMetadata, TableMetadata } from "../types/metadata";
 import { MetadataTree } from "../components/MetadataTree";
 import { SqlEditor } from "../components/SqlEditor";
 import { DatabaseSidebar } from "../components/DatabaseSidebar";
+import { NaturalLanguageInput } from "../components/NaturalLanguageInput";
 
 const { Title, Text } = Typography;
 
@@ -44,6 +48,9 @@ export const Home: React.FC = () => {
   const [sql, setSql] = useState("SELECT * FROM ");
   const [executing, setExecuting] = useState(false);
   const [queryResult, setQueryResult] = useState<QueryResult | null>(null);
+  const [activeTab, setActiveTab] = useState<"manual" | "natural">("manual");
+  const [generatingSql, setGeneratingSql] = useState(false);
+  const [nlError, setNlError] = useState<string | null>(null);
 
   useEffect(() => {
     if (selectedDatabase) {
@@ -105,6 +112,113 @@ export const Home: React.FC = () => {
     } catch (error: any) {
       message.error("Failed to refresh metadata");
     }
+  };
+
+  const handleGenerateSQL = async (prompt: string) => {
+    if (!selectedDatabase) return;
+
+    setGeneratingSql(true);
+    setNlError(null);
+    try {
+      const response = await apiClient.post<{ sql: string; explanation: string }>(
+        `/api/v1/dbs/${selectedDatabase}/query/natural`,
+        { prompt }
+      );
+      setSql(response.data.sql);
+      setActiveTab("manual"); // Switch to manual tab to show generated SQL
+      message.success("SQL generated successfully! You can now edit and execute it.");
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.detail || "Failed to generate SQL";
+      setNlError(errorMsg);
+      message.error(errorMsg);
+    } finally {
+      setGeneratingSql(false);
+    }
+  };
+
+  const handleExportCSV = () => {
+    if (!queryResult || queryResult.rows.length === 0) {
+      message.warning("No data to export");
+      return;
+    }
+
+    // Warn if result is large
+    if (queryResult.rows.length > 10000) {
+      Modal.confirm({
+        title: "Large Dataset Warning",
+        icon: <ExclamationCircleOutlined />,
+        content: `You are about to export ${queryResult.rowCount.toLocaleString()} rows. This may take a while and consume memory. Continue?`,
+        onOk: () => exportToCSV(),
+      });
+    } else {
+      exportToCSV();
+    }
+  };
+
+  const exportToCSV = () => {
+    if (!queryResult) return;
+
+    // Generate CSV content
+    const headers = queryResult.columns.map((col) => col.name);
+    const csvRows = [headers.join(",")];
+
+    queryResult.rows.forEach((row) => {
+      const values = headers.map((header) => {
+        const value = row[header];
+        // Handle null/undefined
+        if (value === null || value === undefined) return "";
+        // Escape quotes and wrap in quotes if contains comma or quote
+        const stringValue = String(value);
+        if (stringValue.includes(",") || stringValue.includes('"') || stringValue.includes("\n")) {
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
+      });
+      csvRows.push(values.join(","));
+    });
+
+    const csvContent = csvRows.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
+    link.href = URL.createObjectURL(blob);
+    link.download = `${selectedDatabase}_${timestamp}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    message.success(`Exported ${queryResult.rowCount} rows to CSV`);
+  };
+
+  const handleExportJSON = () => {
+    if (!queryResult || queryResult.rows.length === 0) {
+      message.warning("No data to export");
+      return;
+    }
+
+    // Warn if result is large
+    if (queryResult.rows.length > 10000) {
+      Modal.confirm({
+        title: "Large Dataset Warning",
+        icon: <ExclamationCircleOutlined />,
+        content: `You are about to export ${queryResult.rowCount.toLocaleString()} rows. This may take a while and consume memory. Continue?`,
+        onOk: () => exportToJSON(),
+      });
+    } else {
+      exportToJSON();
+    }
+  };
+
+  const exportToJSON = () => {
+    if (!queryResult) return;
+
+    const jsonContent = JSON.stringify(queryResult.rows, null, 2);
+    const blob = new Blob([jsonContent], { type: "application/json;charset=utf-8;" });
+    const link = document.createElement("a");
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
+    link.href = URL.createObjectURL(blob);
+    link.download = `${selectedDatabase}_${timestamp}.json`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    message.success(`Exported ${queryResult.rowCount} rows to JSON`);
   };
 
   const tableColumns =
@@ -395,7 +509,7 @@ export const Home: React.FC = () => {
           </Col>
         </Row>
 
-        {/* SQL Editor */}
+        {/* Query Editor with Tabs */}
         <Card
           title={
             <Text
@@ -406,32 +520,84 @@ export const Home: React.FC = () => {
                 letterSpacing: "0.04em",
               }}
             >
-              SQL EDITOR
+              QUERY EDITOR
             </Text>
           }
           extra={
-            <Button
-              type="primary"
-              icon={<PlayCircleOutlined />}
-              onClick={handleExecuteQuery}
-              loading={executing}
-              size="large"
-              style={{
-                height: 40,
-                paddingLeft: 20,
-                paddingRight: 20,
-                fontWeight: 700,
-              }}
-            >
-              EXECUTE
-            </Button>
+            activeTab === "manual" ? (
+              <Button
+                type="primary"
+                icon={<PlayCircleOutlined />}
+                onClick={handleExecuteQuery}
+                loading={executing}
+                size="large"
+                style={{
+                  height: 40,
+                  paddingLeft: 20,
+                  paddingRight: 20,
+                  fontWeight: 700,
+                }}
+              >
+                EXECUTE
+              </Button>
+            ) : null
           }
           style={{ borderWidth: 2, borderColor: "#000000", marginBottom: 16 }}
         >
-          <SqlEditor
-            value={sql}
-            onChange={(value) => setSql(value || "")}
-            height="180px"
+          <Tabs
+            activeKey={activeTab}
+            onChange={(key) => setActiveTab(key as "manual" | "natural")}
+            items={[
+              {
+                key: "manual",
+                label: (
+                  <Text
+                    strong
+                    style={{
+                      fontSize: 12,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    MANUAL SQL
+                  </Text>
+                ),
+                children: (
+                  <SqlEditor
+                    value={sql}
+                    onChange={(value) => setSql(value || "")}
+                    height="180px"
+                  />
+                ),
+              },
+              {
+                key: "natural",
+                label: (
+                  <Text
+                    strong
+                    style={{
+                      fontSize: 12,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    NATURAL LANGUAGE
+                  </Text>
+                ),
+                children: (
+                  <div style={{ padding: "12px 0" }}>
+                    <NaturalLanguageInput
+                      onGenerateSQL={handleGenerateSQL}
+                      loading={generatingSql}
+                      error={nlError}
+                    />
+                  </div>
+                ),
+              },
+            ]}
+            style={{
+              marginTop: -16,
+            }}
           />
         </Card>
 
@@ -458,10 +624,18 @@ export const Home: React.FC = () => {
             }
             extra={
               <Space size={8}>
-                <Button size="small" style={{ fontSize: 12 }}>
+                <Button
+                  size="small"
+                  onClick={handleExportCSV}
+                  style={{ fontSize: 12, fontWeight: 700 }}
+                >
                   EXPORT CSV
                 </Button>
-                <Button size="small" style={{ fontSize: 12 }}>
+                <Button
+                  size="small"
+                  onClick={handleExportJSON}
+                  style={{ fontSize: 12, fontWeight: 700 }}
+                >
                   EXPORT JSON
                 </Button>
               </Space>
@@ -471,7 +645,7 @@ export const Home: React.FC = () => {
             <Table
               columns={tableColumns}
               dataSource={queryResult.rows}
-              rowKey={(record, index) => index?.toString() || "0"}
+              rowKey={(_record, index) => index?.toString() || "0"}
               pagination={{
                 pageSize: 50,
                 showSizeChanger: true,

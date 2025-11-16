@@ -56,7 +56,7 @@ export const DatabaseSidebar: React.FC<DatabaseSidebarProps> = ({
 
       // Auto-select first database if none selected
       if (!selectedDatabase && response.data.length > 0) {
-        onSelectDatabase(response.data[0].name);
+        onSelectDatabase(response.data[0]?.name || "");
       }
     } catch (error) {
       message.error("Failed to load databases");
@@ -86,7 +86,7 @@ export const DatabaseSidebar: React.FC<DatabaseSidebarProps> = ({
       message.success("Database deleted successfully");
       if (selectedDatabase === dbName) {
         const remaining = databases.filter((db) => db.name !== dbName);
-        onSelectDatabase(remaining.length > 0 ? remaining[0].name : "");
+        onSelectDatabase(remaining.length > 0 ? remaining[0]?.name || "" : "");
       }
       loadDatabases();
     } catch (error: any) {

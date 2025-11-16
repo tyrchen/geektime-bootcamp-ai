@@ -1,5 +1,6 @@
 """Query execution API endpoints."""
 
+import json
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 from typing import List
@@ -10,9 +11,13 @@ from app.models.schemas import (
     QueryInput,
     QueryResult,
     QueryHistoryEntry,
+    NaturalLanguageInput,
+    GeneratedSqlResponse,
 )
 from app.services.query import execute_query, get_query_history
 from app.services.sql_validator import SqlValidationError
+from app.services.nl2sql import nl2sql_service
+from app.services.metadata import get_cached_metadata
 
 router = APIRouter(prefix="/api/v1/dbs", tags=["queries"])
 
@@ -115,3 +120,61 @@ async def get_query_history_for_database(
     # Get history
     history_list = await get_query_history(session, name, limit)
     return [to_history_entry(h) for h in history_list]
+
+
+@router.post("/{name}/query/natural", response_model=GeneratedSqlResponse)
+async def natural_language_to_sql(
+    name: str,
+    input_data: NaturalLanguageInput,
+    session: Session = Depends(get_session),
+) -> GeneratedSqlResponse:
+    """
+    Convert natural language to SQL query using OpenAI.
+
+    Args:
+        name: Database connection name
+        input_data: Natural language prompt
+        session: Database session
+
+    Returns:
+        Generated SQL query with explanation
+    """
+    # Get connection
+    statement = select(DatabaseConnection).where(DatabaseConnection.name == name)
+    connection = session.exec(statement).first()
+
+    if not connection:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Database connection '{name}' not found",
+        )
+
+    # Get metadata for context
+    try:
+        metadata_obj = await get_cached_metadata(session, connection.name)
+        if not metadata_obj:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Metadata not found for database '{name}'. Please refresh metadata first.",
+            )
+        metadata = json.loads(metadata_obj.metadata_json)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to load metadata: {str(e)}",
+        )
+
+    # Generate SQL
+    try:
+        result = await nl2sql_service.generate_sql(input_data.prompt, metadata)
+        return GeneratedSqlResponse(
+            sql=result["sql"],
+            explanation=result["explanation"],
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate SQL: {str(e)}",
+        )

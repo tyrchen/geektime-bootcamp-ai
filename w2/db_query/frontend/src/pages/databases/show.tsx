@@ -27,7 +27,7 @@ import { DatabaseMetadata, TableMetadata } from "../../types/metadata";
 import { MetadataTree } from "../../components/MetadataTree";
 import { SqlEditor } from "../../components/SqlEditor";
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 interface QueryResult {
   columns: Array<{ name: string; dataType: string }>;
@@ -265,7 +265,7 @@ export const DatabaseShow: React.FC = () => {
                 <Table
                   columns={tableColumns}
                   dataSource={queryResult.rows}
-                  rowKey={(record, index) => index?.toString() || "0"}
+                  rowKey={(_record, index) => index?.toString() || "0"}
                   pagination={{
                     pageSize: 50,
                     showSizeChanger: true,

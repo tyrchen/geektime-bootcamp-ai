@@ -148,22 +148,22 @@
 
 #### Backend Services - US3
 
-- [ ] T060 [US3] Implement OpenAI client wrapper in w2/db_query/backend/app/services/nl2sql.py
-- [ ] T061 [US3] Create prompt template with metadata context in nl2sql.py
-- [ ] T062 [US3] Implement natural language to SQL conversion in nl2sql.py
-- [ ] T063 [US3] Add error handling for LLM API failures in nl2sql.py
+- [X] T060 [US3] Implement OpenAI client wrapper in w2/db_query/backend/app/services/nl2sql.py
+- [X] T061 [US3] Create prompt template with metadata context in nl2sql.py
+- [X] T062 [US3] Implement natural language to SQL conversion in nl2sql.py
+- [X] T063 [US3] Add error handling for LLM API failures in nl2sql.py
 
 #### Backend API - US3
 
-- [ ] T064 [US3] Implement POST /api/v1/dbs/{name}/query/natural endpoint in w2/db_query/backend/app/api/v1/queries.py
+- [X] T064 [US3] Implement POST /api/v1/dbs/{name}/query/natural endpoint in w2/db_query/backend/app/api/v1/queries.py
 - [ ] T065 [US3] Add rate limiting for LLM endpoint (optional) in queries.py
 
 #### Frontend Components - US3
 
-- [ ] T066 [US3] Create natural language input component in w2/db_query/frontend/src/components/NaturalLanguageInput.tsx
-- [ ] T067 [US3] Add tab switcher (Manual SQL / Natural Language) to query page
-- [ ] T068 [US3] Integrate natural language input in w2/db_query/frontend/src/pages/queries/execute.tsx
-- [ ] T069 [US3] Display generated SQL in editor with edit capability in execute.tsx
+- [X] T066 [US3] Create natural language input component in w2/db_query/frontend/src/components/NaturalLanguageInput.tsx
+- [X] T067 [US3] Add tab switcher (Manual SQL / Natural Language) to query page
+- [X] T068 [US3] Integrate natural language input in w2/db_query/frontend/src/pages/Home.tsx
+- [X] T069 [US3] Display generated SQL in editor with edit capability in Home.tsx
 
 **Checkpoint US3**: Users can generate SQL from Chinese/English natural language
 
@@ -173,20 +173,20 @@
 
 #### Backend Services - US4
 
-- [ ] T070 [P] [US4] Implement CSV export service in w2/db_query/backend/app/services/export.py
-- [ ] T071 [P] [US4] Implement JSON export service in export.py
+- [X] T070 [P] [US4] Implement CSV export service in w2/db_query/backend/app/services/export.py
+- [X] T071 [P] [US4] Implement JSON export service in export.py
 
 #### Backend API - US4
 
-- [ ] T072 [US4] Implement GET /api/v1/dbs/{name}/query/export endpoint in w2/db_query/backend/app/api/v1/queries.py
-- [ ] T073 [US4] Add query parameters for format selection (csv/json) in queries.py
+- [ ] T072 [US4] Implement GET /api/v1/dbs/{name}/query/export endpoint in w2/db_query/backend/app/api/v1/queries.py (NOTE: Frontend implements client-side export instead)
+- [ ] T073 [US4] Add query parameters for format selection (csv/json) in queries.py (NOTE: Not needed for client-side export)
 
 #### Frontend Components - US4
 
-- [ ] T074 [US4] Create export button component in w2/db_query/frontend/src/components/ResultTable.tsx
-- [ ] T075 [US4] Add format selection dropdown (CSV/JSON) in ResultTable.tsx
-- [ ] T076 [US4] Implement file download logic in ResultTable.tsx
-- [ ] T077 [US4] Add large result set warning (>10000 rows) in ResultTable.tsx
+- [X] T074 [US4] Implement CSV export in Home.tsx with handleExportCSV
+- [X] T075 [US4] Implement JSON export in Home.tsx with handleExportJSON
+- [X] T076 [US4] Implement file download logic with timestamp naming in Home.tsx
+- [X] T077 [US4] Add large result set warning (>10000 rows) in Home.tsx
 
 **Checkpoint US4**: Users can export query results to CSV and JSON files
 
