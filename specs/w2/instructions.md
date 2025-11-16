@@ -56,3 +56,7 @@ POST /api/v1/dbs/{name}/query/natural
   "prompt": "查询用户表的所有信息"
 }
 ```
+
+## 测试
+
+运行后端和前端，根据 @test.rest  用 curl 测试后端已实现的路由；然后用 playwright 代开前端进行测试，任何测试问题，think ultra hard and fix

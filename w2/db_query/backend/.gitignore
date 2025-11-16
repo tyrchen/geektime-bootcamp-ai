@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment variables
+.env
+.env.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Alembic
+alembic/versions/*.pyc

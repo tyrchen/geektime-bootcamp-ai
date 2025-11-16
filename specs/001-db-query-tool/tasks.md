@@ -69,34 +69,34 @@
 
 #### Backend Services - US1
 
-- [ ] T025 [P] [US1] Implement SQL validator service using sqlglot in w2/db_query/backend/app/services/sql_validator.py
-- [ ] T026 [P] [US1] Implement database connection service (test connection, asyncpg pool) in w2/db_query/backend/app/services/db_connection.py
-- [ ] T027 [US1] Implement metadata extraction service (query pg_catalog) in w2/db_query/backend/app/services/metadata.py
-- [ ] T028 [US1] Implement metadata caching logic in w2/db_query/backend/app/services/metadata.py
+- [X] T025 [P] [US1] Implement SQL validator service using sqlglot in w2/db_query/backend/app/services/sql_validator.py
+- [X] T026 [P] [US1] Implement database connection service (test connection, asyncpg pool) in w2/db_query/backend/app/services/db_connection.py
+- [X] T027 [US1] Implement metadata extraction service (query pg_catalog) in w2/db_query/backend/app/services/metadata.py
+- [X] T028 [US1] Implement metadata caching logic in w2/db_query/backend/app/services/metadata.py
 
 #### Backend API - US1
 
-- [ ] T029 [US1] Create databases router in w2/db_query/backend/app/api/v1/databases.py
-- [ ] T030 [US1] Implement PUT /api/v1/dbs/{name} endpoint (create/update connection) in databases.py
-- [ ] T031 [US1] Implement GET /api/v1/dbs endpoint (list all connections) in databases.py
-- [ ] T032 [US1] Implement GET /api/v1/dbs/{name} endpoint (get metadata) in databases.py
-- [ ] T033 [US1] Implement DELETE /api/v1/dbs/{name} endpoint in databases.py
-- [ ] T034 [US1] Implement POST /api/v1/dbs/{name}/refresh endpoint in databases.py
+- [X] T029 [US1] Create databases router in w2/db_query/backend/app/api/v1/databases.py
+- [X] T030 [US1] Implement PUT /api/v1/dbs/{name} endpoint (create/update connection) in databases.py
+- [X] T031 [US1] Implement GET /api/v1/dbs endpoint (list all connections) in databases.py
+- [X] T032 [US1] Implement GET /api/v1/dbs/{name} endpoint (get metadata) in databases.py
+- [X] T033 [US1] Implement DELETE /api/v1/dbs/{name} endpoint in databases.py
+- [X] T034 [US1] Implement POST /api/v1/dbs/{name}/refresh endpoint in databases.py
 
 #### Frontend Types & Services - US1
 
-- [ ] T035 [P] [US1] Create TypeScript types for database connection in w2/db_query/frontend/src/types/database.ts
-- [ ] T036 [P] [US1] Create TypeScript types for metadata in w2/db_query/frontend/src/types/metadata.ts
-- [ ] T037 [US1] Create Axios API client instance in w2/db_query/frontend/src/services/api.ts
-- [ ] T038 [US1] Create Refine data provider in w2/db_query/frontend/src/services/dataProvider.ts
+- [X] T035 [P] [US1] Create TypeScript types for database connection in w2/db_query/frontend/src/types/database.ts
+- [X] T036 [P] [US1] Create TypeScript types for metadata in w2/db_query/frontend/src/types/metadata.ts
+- [X] T037 [US1] Create Axios API client instance in w2/db_query/frontend/src/services/api.ts
+- [X] T038 [US1] Create Refine data provider in w2/db_query/frontend/src/services/dataProvider.ts
 
 #### Frontend Pages - US1
 
-- [ ] T039 [US1] Setup Refine app with Ant Design in w2/db_query/frontend/src/App.tsx
-- [ ] T040 [US1] Create database list page in w2/db_query/frontend/src/pages/databases/list.tsx
-- [ ] T041 [US1] Create database create/edit form page in w2/db_query/frontend/src/pages/databases/create.tsx
-- [ ] T042 [US1] Create metadata tree view component in w2/db_query/frontend/src/components/MetadataTree.tsx
-- [ ] T043 [US1] Create database detail page (show metadata) in w2/db_query/frontend/src/pages/databases/show.tsx
+- [X] T039 [US1] Setup Refine app with Ant Design in w2/db_query/frontend/src/App.tsx
+- [X] T040 [US1] Create database list page in w2/db_query/frontend/src/pages/databases/list.tsx
+- [X] T041 [US1] Create database create/edit form page in w2/db_query/frontend/src/pages/databases/create.tsx
+- [X] T042 [US1] Create metadata tree view component in w2/db_query/frontend/src/components/MetadataTree.tsx
+- [X] T043 [US1] Create database detail page (show metadata) in w2/db_query/frontend/src/pages/databases/show.tsx
 
 **Checkpoint US1**: Users can add PostgreSQL connections and view table/column metadata
 
@@ -106,31 +106,31 @@
 
 #### Backend Services - US2
 
-- [ ] T044 [US2] Implement query execution service (asyncpg execute) in w2/db_query/backend/app/services/query.py
-- [ ] T045 [US2] Implement query history management in w2/db_query/backend/app/services/query.py
-- [ ] T046 [US2] Add SQL validation (SELECT only) and LIMIT injection logic in sql_validator.py
+- [X] T044 [US2] Implement query execution service (asyncpg execute) in w2/db_query/backend/app/services/query.py
+- [X] T045 [US2] Implement query history management in w2/db_query/backend/app/services/query.py
+- [X] T046 [US2] Add SQL validation (SELECT only) and LIMIT injection logic in sql_validator.py
 
 #### Backend API - US2
 
-- [ ] T047 [US2] Create queries router in w2/db_query/backend/app/api/v1/queries.py
-- [ ] T048 [US2] Implement POST /api/v1/dbs/{name}/query endpoint in queries.py
-- [ ] T049 [US2] Implement GET /api/v1/dbs/{name}/history endpoint in queries.py
-- [ ] T050 [US2] Add error handling for SQL validation errors in queries.py
+- [X] T047 [US2] Create queries router in w2/db_query/backend/app/api/v1/queries.py
+- [X] T048 [US2] Implement POST /api/v1/dbs/{name}/query endpoint in queries.py
+- [X] T049 [US2] Implement GET /api/v1/dbs/{name}/history endpoint in queries.py
+- [X] T050 [US2] Add error handling for SQL validation errors in queries.py
 
 #### Frontend Types & Components - US2
 
-- [ ] T051 [P] [US2] Create TypeScript types for query result in w2/db_query/frontend/src/types/query.ts
-- [ ] T052 [US2] Create Monaco-based SQL editor component in w2/db_query/frontend/src/components/SqlEditor.tsx
-- [ ] T053 [US2] Configure Monaco editor for SQL syntax highlighting and autocomplete in SqlEditor.tsx
-- [ ] T054 [US2] Create query result table component in w2/db_query/frontend/src/components/ResultTable.tsx
-- [ ] T055 [US2] Add pagination support to result table in ResultTable.tsx
+- [X] T051 [P] [US2] Create TypeScript types for query result in w2/db_query/frontend/src/types/query.ts
+- [X] T052 [US2] Create Monaco-based SQL editor component in w2/db_query/frontend/src/components/SqlEditor.tsx
+- [X] T053 [US2] Configure Monaco editor for SQL syntax highlighting and autocomplete in SqlEditor.tsx
+- [X] T054 [US2] Create query result table component in w2/db_query/frontend/src/components/ResultTable.tsx
+- [X] T055 [US2] Add pagination support to result table in ResultTable.tsx
 
 #### Frontend Pages - US2
 
-- [ ] T056 [US2] Create query execution page in w2/db_query/frontend/src/pages/queries/execute.tsx
-- [ ] T057 [US2] Integrate SQL editor and result table in execute.tsx
-- [ ] T058 [US2] Add query history panel in execute.tsx
-- [ ] T059 [US2] Add loading state and error display in execute.tsx
+- [X] T056 [US2] Create query execution page in w2/db_query/frontend/src/pages/queries/execute.tsx
+- [X] T057 [US2] Integrate SQL editor and result table in execute.tsx
+- [X] T058 [US2] Add query history panel in execute.tsx
+- [X] T059 [US2] Add loading state and error display in execute.tsx
 
 **Checkpoint US2**: Users can write SQL, execute queries, view results in table, see query history
 

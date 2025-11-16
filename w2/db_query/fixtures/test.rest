@@ -1,0 +1,279 @@
+### Database Query Tool API Tests
+### Use VSCode REST Client extension to run these requests
+### Base URL: http://localhost:8000/api/v1
+
+@baseUrl = http://localhost:8000/api/v1
+@dbName = todo
+
+### Variables
+@testDbUrl = postgresql://postgres:postgres@localhost:5432/{{dbName}}
+
+###
+### Health Check
+###
+GET {{baseUrl}}/../../health HTTP/1.1
+
+###
+### 1. List All Database Connections
+###
+GET {{baseUrl}}/dbs HTTP/1.1
+
+###
+### 2. Create/Update Database Connection
+### Creates a new database connection or updates existing one
+PUT {{baseUrl}}/dbs/{{dbName}} HTTP/1.1
+Content-Type: application/json
+
+{
+  "url": "{{testDbUrl}}",
+  "description": "Test database for development"
+}
+
+###
+### 3. Get Database Metadata
+### Returns cached metadata including tables, views, and columns
+GET {{baseUrl}}/dbs/{{dbName}} HTTP/1.1
+
+###
+### 4. Refresh Database Metadata
+### Forces a refresh by re-querying PostgreSQL system tables
+POST {{baseUrl}}/dbs/{{dbName}}/refresh HTTP/1.1
+
+###
+### 5. Execute SQL Query - Simple SELECT
+###
+POST {{baseUrl}}/dbs/{{dbName}}/query HTTP/1.1
+Content-Type: application/json
+
+{
+  "sql": "SELECT * FROM users LIMIT 10"
+}
+
+###
+### 6. Execute SQL Query - SELECT with WHERE
+###
+POST {{baseUrl}}/dbs/{{dbName}}/query HTTP/1.1
+Content-Type: application/json
+
+{
+  "sql": "SELECT id, name, email FROM users WHERE status = 'active'"
+}
+
+###
+### 7. Execute SQL Query - SELECT with JOIN
+###
+POST {{baseUrl}}/dbs/{{dbName}}/query HTTP/1.1
+Content-Type: application/json
+
+{
+  "sql": "SELECT u.name, COUNT(o.id) as order_count FROM users u LEFT JOIN orders o ON u.id = o.user_id GROUP BY u.name ORDER BY order_count DESC LIMIT 10"
+}
+
+###
+### 8. Execute SQL Query - Auto LIMIT (no LIMIT clause)
+### System should automatically add LIMIT 1000
+POST {{baseUrl}}/dbs/{{dbName}}/query HTTP/1.1
+Content-Type: application/json
+
+{
+  "sql": "SELECT * FROM users"
+}
+
+###
+### 9. Execute SQL Query - Error: Non-SELECT statement (should fail)
+###
+POST {{baseUrl}}/dbs/{{dbName}}/query HTTP/1.1
+Content-Type: application/json
+
+{
+  "sql": "INSERT INTO users (name, email) VALUES ('test', 'test@example.com')"
+}
+
+###
+### 10. Execute SQL Query - Error: Syntax error (should fail)
+###
+POST {{baseUrl}}/dbs/{{dbName}}/query HTTP/1.1
+Content-Type: application/json
+
+{
+  "sql": "SELECT * FROM users WHERE invalid_column = 'test'"
+}
+
+###
+### 11. Natural Language to SQL - Chinese
+###
+POST {{baseUrl}}/dbs/{{dbName}}/query/natural HTTP/1.1
+Content-Type: application/json
+
+{
+  "prompt": "查询所有活跃用户的姓名和邮箱"
+}
+
+###
+### 12. Natural Language to SQL - English
+###
+POST {{baseUrl}}/dbs/{{dbName}}/query/natural HTTP/1.1
+Content-Type: application/json
+
+{
+  "prompt": "Show total order amount by user, sorted by amount descending, limit to top 10"
+}
+
+###
+### 13. Natural Language to SQL - Complex Query
+###
+POST {{baseUrl}}/dbs/{{dbName}}/query/natural HTTP/1.1
+Content-Type: application/json
+
+{
+  "prompt": "显示最近30天注册的用户，按注册时间降序排列"
+}
+
+###
+### 14. Get Query History
+###
+GET {{baseUrl}}/dbs/{{dbName}}/history HTTP/1.1
+
+###
+### 15. Get Query History with Limit
+###
+GET {{baseUrl}}/dbs/{{dbName}}/history?limit=10 HTTP/1.1
+
+###
+### 16. Delete Database Connection
+### WARNING: This will delete the database connection and all metadata
+DELETE {{baseUrl}}/dbs/{{dbName}} HTTP/1.1
+
+###
+### Test Scenarios
+###
+
+### Scenario 1: Complete Workflow
+### Step 1: Add database connection
+PUT {{baseUrl}}/dbs/my-postgres HTTP/1.1
+Content-Type: application/json
+
+{
+  "url": "postgresql://postgres:postgres@localhost:5432/mydb",
+  "description": "My production database"
+}
+
+### Step 2: Get metadata
+GET {{baseUrl}}/dbs/my-postgres HTTP/1.1
+
+### Step 3: Execute a query
+POST {{baseUrl}}/dbs/my-postgres/query HTTP/1.1
+Content-Type: application/json
+
+{
+  "sql": "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' LIMIT 10"
+}
+
+### Step 4: Check query history
+GET {{baseUrl}}/dbs/my-postgres/history HTTP/1.1
+
+###
+### Scenario 2: Natural Language Workflow
+### Step 1: Generate SQL from natural language
+POST {{baseUrl}}/dbs/my-postgres/query/natural HTTP/1.1
+Content-Type: application/json
+
+{
+  "prompt": "查询用户表中的所有数据"
+}
+
+### Step 2: Execute the generated SQL (copy from previous response)
+POST {{baseUrl}}/dbs/my-postgres/query HTTP/1.1
+Content-Type: application/json
+
+{
+  "sql": "SELECT * FROM users LIMIT 1000"
+}
+
+###
+### Error Cases
+###
+
+### Error: Database not found
+GET {{baseUrl}}/dbs/nonexistent-db HTTP/1.1
+
+### Error: Invalid database URL format
+PUT {{baseUrl}}/dbs/invalid-db HTTP/1.1
+Content-Type: application/json
+
+{
+  "url": "invalid-url-format",
+  "description": "This should fail"
+}
+
+### Error: Empty SQL query
+POST {{baseUrl}}/dbs/{{dbName}}/query HTTP/1.1
+Content-Type: application/json
+
+{
+  "sql": ""
+}
+
+### Error: Natural language prompt too short
+POST {{baseUrl}}/dbs/{{dbName}}/query/natural HTTP/1.1
+Content-Type: application/json
+
+{
+  "prompt": "hi"
+}
+
+###
+### Edge Cases
+###
+
+### Query with special characters
+POST {{baseUrl}}/dbs/{{dbName}}/query HTTP/1.1
+Content-Type: application/json
+
+{
+  "sql": "SELECT name FROM users WHERE name LIKE '%test%'"
+}
+
+### Query with NULL handling
+POST {{baseUrl}}/dbs/{{dbName}}/query HTTP/1.1
+Content-Type: application/json
+
+{
+  "sql": "SELECT id, name, COALESCE(email, 'N/A') as email FROM users"
+}
+
+### Query with aggregation
+POST {{baseUrl}}/dbs/{{dbName}}/query HTTP/1.1
+Content-Type: application/json
+
+{
+  "sql": "SELECT status, COUNT(*) as count FROM users GROUP BY status"
+}
+
+### Query with subquery
+POST {{baseUrl}}/dbs/{{dbName}}/query HTTP/1.1
+Content-Type: application/json
+
+{
+  "sql": "SELECT * FROM users WHERE id IN (SELECT user_id FROM orders WHERE total > 100)"
+}
+
+###
+### Performance Tests
+###
+
+### Large result set (should be limited to 1000)
+POST {{baseUrl}}/dbs/{{dbName}}/query HTTP/1.1
+Content-Type: application/json
+
+{
+  "sql": "SELECT * FROM large_table"
+}
+
+### Complex query with multiple JOINs
+POST {{baseUrl}}/dbs/{{dbName}}/query HTTP/1.1
+Content-Type: application/json
+
+{
+  "sql": "SELECT u.name, u.email, o.total, p.name as product_name FROM users u JOIN orders o ON u.id = o.user_id JOIN order_items oi ON o.id = oi.order_id JOIN products p ON oi.product_id = p.id LIMIT 100"
+}
