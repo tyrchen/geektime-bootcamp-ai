@@ -249,63 +249,523 @@ useEffect(() => {
   {
     id: 'project-2',
     number: 2,
-    title: '智能数据库查询生成器',
-    subtitle: '自然语言转 SQL',
+    title: '数据库查询工具',
+    subtitle: '支持自然语言生成 SQL 的智能数据库管理平台',
     difficulty: 3,
-    estimatedHours: 6,
+    estimatedHours: 12,
     weekNumber: 2,
     objectives: [
-      '掌握复杂的 Prompt Engineering',
-      '理解 AI 在数据处理中的应用',
-      '学习错误处理和边缘情况',
-      '实践 Cursor Composer 多文件编辑',
+      '掌握复杂的 Prompt Engineering 技巧',
+      '理解 AI 在数据处理中的实际应用',
+      '学习 SQL 安全验证和错误处理',
+      '实践全栈应用的架构设计',
+      '使用现代化前端框架（React 19 + Refine 5）',
+      '掌握严格的类型安全（Python + TypeScript）',
     ],
-    techStack: ['React', 'TypeScript', 'Node.js', 'SQLite', 'Express'],
+    techStack: [
+      'React 19',
+      'TypeScript',
+      'Refine 5',
+      'Ant Design 5',
+      'Monaco Editor',
+      'Tailwind CSS 4',
+      'Vite',
+      'FastAPI',
+      'Python 3.12+',
+      'Pydantic v2',
+      'SQLite',
+      'PostgreSQL',
+      'sqlglot',
+      'OpenAI SDK',
+      'asyncpg',
+    ],
     architecture: `graph TB
-    A[前端界面] --> B[自然语言输入]
-    B --> C[AI 处理]
-    C --> D[SQL 生成]
-    D --> E[SQL 验证]
-    E --> F{验证通过?}
-    F -->|是| G[执行查询]
-    F -->|否| H[错误提示]
-    G --> I[结果展示]
-    H --> B
-    J[后端 API] --> K[SQLite]
-    G --> J
-    J --> I`,
+    subgraph "前端层"
+      A[React 19 + TypeScript]
+      B[Refine 5 框架]
+      C[Ant Design 5 UI]
+      D[Monaco SQL 编辑器]
+    end
+
+    subgraph "网络层"
+      E[Axios HTTP Client]
+      F[Refine Data Provider]
+    end
+
+    subgraph "后端 API 层"
+      G[FastAPI]
+      H[Pydantic v2 验证]
+      I[API Routes]
+    end
+
+    subgraph "业务逻辑层"
+      J[SQL 验证服务 - sqlglot]
+      K[元数据提取服务]
+      L[查询执行服务]
+      M[自然语言转 SQL - OpenAI]
+    end
+
+    subgraph "数据层"
+      N[本地 SQLite]
+      O[远程 PostgreSQL]
+    end
+
+    subgraph "存储实体"
+      P[DatabaseConnection]
+      Q[DatabaseMetadata]
+      R[QueryHistory]
+    end
+
+    A --> B
+    B --> C
+    B --> D
+    B --> F
+    F --> E
+    E --> G
+    G --> H
+    H --> I
+    I --> J
+    I --> K
+    I --> L
+    I --> M
+    J --> L
+    K --> O
+    L --> O
+    M --> O
+    G --> N
+    N --> P
+    N --> Q
+    N --> R`,
     implementationSteps: [
       {
         stepNumber: 1,
-        title: '搭建前后端架构',
-        description: '使用 Composer 同时创建前端和后端代码',
+        title: '数据模型和 API 规范设计',
+        description:
+          '使用 Pydantic 定义严格的数据模型，设计 RESTful API 接口，确保类型安全和 camelCase JSON 规范',
+        codeExample: `from pydantic import BaseModel, Field, ConfigDict
+from typing import Optional
+from datetime import datetime
+
+class DatabaseConnectionCreate(BaseModel):
+    """创建数据库连接的请求模型"""
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    name: str = Field(..., min_length=1, max_length=100)
+    connection_url: str = Field(..., min_length=1)
+    description: Optional[str] = None
+
+class DatabaseMetadataResponse(BaseModel):
+    """数据库元数据响应模型"""
+    model_config = ConfigDict(alias_generator=to_camel)
+
+    database_name: str
+    tables: list[TableMetadata]
+    fetched_at: datetime
+
+class TableMetadata(BaseModel):
+    table_name: str
+    table_type: str  # 'TABLE' or 'VIEW'
+    columns: list[ColumnMetadata]`,
       },
       {
         stepNumber: 2,
-        title: '实现 NL2SQL 核心逻辑',
-        description: '集成 AI API，将自然语言转换为 SQL',
-        codeExample: `// 示例 Prompt 设计
-const systemPrompt = \`你是一个 SQL 专家，将用户的自然语言查询转换为 SQL 语句。
-数据库 schema: \${schema}
-只返回 SQL 语句，不要有其他解释。\`;`,
+        title: 'SQL 安全验证服务',
+        description:
+          '使用 sqlglot 解析和验证 SQL 语句，仅允许 SELECT 查询，自动添加 LIMIT 1000 限制',
+        codeExample: `import sqlglot
+from sqlglot import exp, parse_one
+
+class SQLValidator:
+    def validate_and_transform(self, sql: str) -> tuple[str, Optional[str]]:
+        """验证 SQL 并自动添加 LIMIT"""
+        try:
+            # 解析 SQL
+            parsed = parse_one(sql, dialect="postgres")
+
+            # 检查是否为 SELECT 语句
+            if not isinstance(parsed, exp.Select):
+                return None, "仅允许 SELECT 查询"
+
+            # 检查是否包含非法操作（子查询中的 INSERT/UPDATE/DELETE）
+            for node in parsed.walk():
+                if isinstance(node, (exp.Insert, exp.Update, exp.Delete)):
+                    return None, "不允许执行修改操作"
+
+            # 自动添加 LIMIT 1000
+            if not parsed.args.get("limit"):
+                parsed = parsed.limit(1000)
+
+            return parsed.sql(dialect="postgres"), None
+
+        except Exception as e:
+            return None, f"SQL 语法错误: {str(e)}"`,
       },
       {
         stepNumber: 3,
-        title: '添加 SQL 验证和安全检查',
-        description: '防止 SQL 注入，验证查询安全性',
+        title: '数据库元数据提取',
+        description:
+          '连接 PostgreSQL 数据库，提取完整的表结构、列定义、数据类型等元数据信息',
+        codeExample: `import asyncpg
+from typing import List
+
+class MetadataService:
+    async def fetch_metadata(self, connection_url: str) -> DatabaseMetadata:
+        """获取数据库完整元数据"""
+        conn = await asyncpg.connect(connection_url)
+
+        try:
+            # 获取所有表和视图
+            tables = await conn.fetch("""
+                SELECT
+                    table_name,
+                    table_type,
+                    table_schema
+                FROM information_schema.tables
+                WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
+                ORDER BY table_name
+            """)
+
+            metadata = []
+            for table in tables:
+                # 获取列信息
+                columns = await conn.fetch("""
+                    SELECT
+                        column_name,
+                        data_type,
+                        is_nullable,
+                        column_default
+                    FROM information_schema.columns
+                    WHERE table_name = $1 AND table_schema = $2
+                    ORDER BY ordinal_position
+                """, table['table_name'], table['table_schema'])
+
+                metadata.append(TableMetadata(
+                    table_name=table['table_name'],
+                    table_type=table['table_type'],
+                    columns=[ColumnMetadata(**dict(col)) for col in columns]
+                ))
+
+            return DatabaseMetadata(
+                database_name=conn.get_server_pid(),
+                tables=metadata,
+                fetched_at=datetime.utcnow()
+            )
+        finally:
+            await conn.close()`,
       },
       {
         stepNumber: 4,
-        title: '优化用户体验',
-        description: '添加查询历史、结果导出等功能',
+        title: '自然语言转 SQL（NL2SQL）',
+        description:
+          '集成 OpenAI API，结合数据库元数据上下文，将自然语言查询需求转换为 SQL 语句',
+        codeExample: `from openai import AsyncOpenAI
+
+class NL2SQLService:
+    def __init__(self):
+        self.client = AsyncOpenAI()
+
+    async def generate_sql(
+        self,
+        natural_language: str,
+        metadata: DatabaseMetadata
+    ) -> str:
+        """将自然语言转换为 SQL"""
+
+        # 构建数据库 schema 上下文
+        schema_context = self._build_schema_context(metadata)
+
+        system_prompt = f"""你是一个 PostgreSQL SQL 专家。
+根据用户的自然语言描述，生成准确的 SQL SELECT 查询。
+
+数据库结构：
+{schema_context}
+
+要求：
+1. 只生成 SELECT 语句
+2. 使用正确的表名和列名
+3. 考虑数据类型和约束
+4. 返回纯 SQL，不要有任何解释
+5. 使用标准 PostgreSQL 语法"""
+
+        response = await self.client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": natural_language}
+            ],
+            temperature=0.1,
+        )
+
+        sql = response.choices[0].message.content.strip()
+        # 移除可能的 markdown 代码块标记
+        sql = sql.replace('\`\`\`sql', '').replace('\`\`\`', '').strip()
+
+        return sql
+
+    def _build_schema_context(self, metadata: DatabaseMetadata) -> str:
+        """构建 schema 描述供 LLM 理解"""
+        context = []
+        for table in metadata.tables:
+            cols = ", ".join([
+                f"{c.column_name} {c.data_type}"
+                for c in table.columns
+            ])
+            context.append(f"{table.table_name} ({cols})")
+        return "\\n".join(context)`,
+      },
+      {
+        stepNumber: 5,
+        title: 'FastAPI 路由和端点实现',
+        description:
+          '实现完整的 RESTful API，包括数据库连接管理、元数据获取、查询执行等功能',
+        codeExample: `from fastapi import APIRouter, Depends, HTTPException
+from app.services.sql_validator import SQLValidator
+from app.services.metadata import MetadataService
+from app.services.query import QueryService
+from app.services.nl2sql import NL2SQLService
+
+router = APIRouter(prefix="/api/v1/dbs", tags=["databases"])
+
+@router.post("", response_model=DatabaseResponse)
+async def create_database_connection(
+    data: DatabaseConnectionCreate,
+    db: Session = Depends(get_db)
+):
+    """添加数据库连接"""
+    # 验证连接是否有效
+    metadata_service = MetadataService()
+    try:
+        await metadata_service.test_connection(data.connection_url)
+    except Exception as e:
+        raise HTTPException(400, f"数据库连接失败: {str(e)}")
+
+    # 保存到 SQLite
+    db_conn = DatabaseConnection(**data.model_dump())
+    db.add(db_conn)
+    db.commit()
+    db.refresh(db_conn)
+
+    return db_conn
+
+@router.post("/{db_name}/query/execute", response_model=QueryResultResponse)
+async def execute_query(
+    db_name: str,
+    request: QueryExecuteRequest,
+    db: Session = Depends(get_db)
+):
+    """执行 SQL 查询"""
+    # 获取数据库连接
+    db_conn = db.query(DatabaseConnection).filter_by(name=db_name).first()
+    if not db_conn:
+        raise HTTPException(404, "数据库连接不存在")
+
+    # SQL 验证
+    validator = SQLValidator()
+    validated_sql, error = validator.validate_and_transform(request.sql)
+    if error:
+        raise HTTPException(400, error)
+
+    # 执行查询
+    query_service = QueryService()
+    try:
+        result = await query_service.execute(
+            db_conn.connection_url,
+            validated_sql
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(500, f"查询执行失败: {str(e)}")
+
+@router.post("/{db_name}/query/nl2sql", response_model=NL2SQLResponse)
+async def natural_language_to_sql(
+    db_name: str,
+    request: NL2SQLRequest,
+    db: Session = Depends(get_db)
+):
+    """将自然语言转换为 SQL"""
+    # 获取数据库元数据
+    metadata = await get_cached_metadata(db_name, db)
+
+    # 调用 NL2SQL 服务
+    nl2sql_service = NL2SQLService()
+    sql = await nl2sql_service.generate_sql(
+        request.natural_language,
+        metadata
+    )
+
+    return NL2SQLResponse(generated_sql=sql)`,
+      },
+      {
+        stepNumber: 6,
+        title: '前端页面和组件开发',
+        description:
+          '使用 React 19 + Refine 5 构建现代化界面，包含数据库列表、元数据浏览、SQL 编辑器和结果展示',
+        codeExample: `import { Refine } from "@refinedev/core";
+import { dataProvider } from "@refinedev/simple-rest";
+import { DatabaseList } from "./pages/databases/list";
+import { QueryExecute } from "./pages/queries/execute";
+
+function App() {
+  return (
+    <Refine
+      dataProvider={dataProvider("http://localhost:8000/api/v1")}
+      resources={[
+        {
+          name: "dbs",
+          list: "/databases",
+          create: "/databases/create",
+          show: "/databases/:name",
+        },
+      ]}
+      routes={[
+        {
+          path: "/databases/:name/query",
+          element: <QueryExecute />,
+        },
+      ]}
+    >
+      <Routes>
+        <Route path="/databases" element={<DatabaseList />} />
+        <Route path="/databases/:name/query" element={<QueryExecute />} />
+      </Routes>
+    </Refine>
+  );
+}
+
+// Monaco SQL 编辑器组件
+import Editor from "@monaco-editor/react";
+
+export function SqlEditor({ value, onChange, onExecute }) {
+  return (
+    <div className="sql-editor">
+      <Editor
+        height="300px"
+        language="sql"
+        theme="vs-dark"
+        value={value}
+        onChange={onChange}
+        options={{
+          minimap: { enabled: false },
+          fontSize: 14,
+          lineNumbers: "on",
+          automaticLayout: true,
+        }}
+      />
+      <Button onClick={onExecute} type="primary">
+        执行查询 (Ctrl+Enter)
+      </Button>
+    </div>
+  );
+}`,
+      },
+      {
+        stepNumber: 7,
+        title: '查询结果展示和导出',
+        description:
+          '实现表格化结果展示，支持分页、排序，提供 CSV 和 JSON 导出功能',
+        codeExample: `import { Table, Button } from "antd";
+import { DownloadOutlined } from "@ant-design/icons";
+
+export function ResultTable({ result }) {
+  const columns = result.columns.map(col => ({
+    title: col.name,
+    dataIndex: col.name,
+    key: col.name,
+    sorter: true,
+  }));
+
+  const handleExportCSV = () => {
+    const csv = [
+      result.columns.map(c => c.name).join(","),
+      ...result.rows.map(row =>
+        result.columns.map(c => row[c.name]).join(",")
+      )
+    ].join("\\n");
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = \`query_result_\${Date.now()}.csv\`;
+    a.click();
+  };
+
+  return (
+    <div>
+      <div className="result-header">
+        <span>返回 {result.row_count} 行 · 执行时间: {result.execution_time}ms</span>
+        <Button icon={<DownloadOutlined />} onClick={handleExportCSV}>
+          导出 CSV
+        </Button>
+      </div>
+      <Table
+        columns={columns}
+        dataSource={result.rows}
+        pagination={{ pageSize: 50 }}
+        scroll={{ x: true, y: 600 }}
+      />
+    </div>
+  );
+}`,
+      },
+      {
+        stepNumber: 8,
+        title: '测试和优化',
+        description:
+          '编写单元测试和集成测试，优化 SQL 验证逻辑，改进用户体验',
+        codeExample: `import pytest
+from app.services.sql_validator import SQLValidator
+
+class TestSQLValidator:
+    def setup_method(self):
+        self.validator = SQLValidator()
+
+    def test_valid_select(self):
+        sql = "SELECT * FROM users"
+        result, error = self.validator.validate_and_transform(sql)
+        assert error is None
+        assert "LIMIT 1000" in result
+
+    def test_reject_insert(self):
+        sql = "INSERT INTO users (name) VALUES ('test')"
+        result, error = self.validator.validate_and_transform(sql)
+        assert result is None
+        assert "仅允许 SELECT" in error
+
+    def test_reject_delete(self):
+        sql = "DELETE FROM users WHERE id = 1"
+        result, error = self.validator.validate_and_transform(sql)
+        assert result is None
+        assert "仅允许 SELECT" in error
+
+    def test_auto_add_limit(self):
+        sql = "SELECT id, name FROM users"
+        result, error = self.validator.validate_and_transform(sql)
+        assert "LIMIT 1000" in result
+
+    def test_preserve_existing_limit(self):
+        sql = "SELECT * FROM users LIMIT 10"
+        result, error = self.validator.validate_and_transform(sql)
+        assert "LIMIT 10" in result
+        assert "LIMIT 1000" not in result`,
       },
     ],
     learningPoints: [
-      'System Prompt 的设计技巧',
-      '多文件协同编辑',
-      'API 集成最佳实践',
-      '错误处理和用户反馈',
+      '使用 Pydantic v2 实现严格的数据验证和类型安全',
+      '掌握 FastAPI 的异步编程和依赖注入',
+      '使用 sqlglot 进行 SQL 解析和安全验证',
+      '设计有效的 Prompt 工程（System Prompt + Schema Context）',
+      'OpenAI API 集成和错误处理最佳实践',
+      'React 19 + Refine 5 现代化前端架构',
+      'Monaco Editor 集成和 SQL 语法高亮',
+      '异步数据库操作（asyncpg）',
+      'API 接口的 RESTful 设计规范',
+      'camelCase JSON 命名规范在 Python/TypeScript 中的实现',
+      '全栈应用的错误处理和用户反馈',
+      'pytest 单元测试和集成测试编写',
     ],
+    previewImage: 'projects/project-2/preview.jpg',
+    demoUrl: 'http://localhost:5173',
   },
   {
     id: 'project-3',
