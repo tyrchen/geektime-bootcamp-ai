@@ -21,39 +21,39 @@
 
 ### Backend Setup
 
-- [ ] T001 Create backend project structure at w2/db_query/backend/
-- [ ] T002 Initialize Python project with uv (pyproject.toml) at w2/db_query/backend/pyproject.toml
-- [ ] T003 [P] Create .python-version file specifying Python 3.12 at w2/db_query/backend/.python-version
-- [ ] T004 [P] Add backend dependencies (FastAPI, Pydantic v2, sqlglot, OpenAI SDK, asyncpg, SQLModel, pytest) to pyproject.toml
-- [ ] T005 [P] Create .env.example file with OPENAI_API_KEY template at w2/db_query/backend/.env.example
-- [ ] T006 [P] Create .gitignore for Python at w2/db_query/backend/.gitignore
+- [X] T001 Create backend project structure at w2/db_query/backend/
+- [X] T002 Initialize Python project with uv (pyproject.toml) at w2/db_query/backend/pyproject.toml
+- [X] T003 [P] Create .python-version file specifying Python 3.12 at w2/db_query/backend/.python-version
+- [X] T004 [P] Add backend dependencies (FastAPI, Pydantic v2, sqlglot, OpenAI SDK, asyncpg, SQLModel, pytest) to pyproject.toml
+- [X] T005 [P] Create .env.example file with OPENAI_API_KEY template at w2/db_query/backend/.env.example
+- [X] T006 [P] Create .gitignore for Python at w2/db_query/backend/.gitignore
 
 ### Frontend Setup
 
-- [ ] T007 Create frontend project structure at w2/db_query/frontend/
-- [ ] T008 Initialize Vite + React + TypeScript project at w2/db_query/frontend/
-- [ ] T009 [P] Add frontend dependencies (React 19, Refine 5, Ant Design 5, Monaco Editor, Tailwind CSS 4) to package.json
-- [ ] T010 [P] Configure TypeScript with strict mode in tsconfig.json at w2/db_query/frontend/tsconfig.json
-- [ ] T011 [P] Configure Tailwind CSS in tailwind.config.js at w2/db_query/frontend/tailwind.config.js
-- [ ] T012 [P] Create .env.local.example with VITE_API_BASE_URL at w2/db_query/frontend/.env.local.example
-- [ ] T013 [P] Create .gitignore for Node.js at w2/db_query/frontend/.gitignore
+- [X] T007 Create frontend project structure at w2/db_query/frontend/
+- [X] T008 Initialize Vite + React + TypeScript project at w2/db_query/frontend/
+- [X] T009 [P] Add frontend dependencies (React 19, Refine 5, Ant Design 5, Monaco Editor, Tailwind CSS 4) to package.json
+- [X] T010 [P] Configure TypeScript with strict mode in tsconfig.json at w2/db_query/frontend/tsconfig.json
+- [X] T011 [P] Configure Tailwind CSS in tailwind.config.js at w2/db_query/frontend/tailwind.config.js
+- [X] T012 [P] Create .env.local.example with VITE_API_BASE_URL at w2/db_query/frontend/.env.local.example
+- [X] T013 [P] Create .gitignore for Node.js at w2/db_query/frontend/.gitignore
 
 ### Core Backend Infrastructure
 
-- [ ] T014 Create FastAPI application entry point in w2/db_query/backend/app/main.py
-- [ ] T015 Configure CORS middleware for all origins in w2/db_query/backend/app/main.py
-- [ ] T016 Create Pydantic Settings configuration in w2/db_query/backend/app/config.py
-- [ ] T017 Setup SQLite database connection and session in w2/db_query/backend/app/database.py
-- [ ] T018 Create Alembic migrations configuration in w2/db_query/backend/alembic.ini
-- [ ] T019 Create initial database schema migration in w2/db_query/backend/alembic/versions/001_initial_schema.py
+- [X] T014 Create FastAPI application entry point in w2/db_query/backend/app/main.py
+- [X] T015 Configure CORS middleware for all origins in w2/db_query/backend/app/main.py
+- [X] T016 Create Pydantic Settings configuration in w2/db_query/backend/app/config.py
+- [X] T017 Setup SQLite database connection and session in w2/db_query/backend/app/database.py
+- [X] T018 Create Alembic migrations configuration in w2/db_query/backend/alembic.ini
+- [X] T019 Create initial database schema migration in w2/db_query/backend/alembic/versions/001_initial_schema.py
 
 ### Core Data Models
 
-- [ ] T020 [P] Create DatabaseConnection SQLModel in w2/db_query/backend/app/models/database.py
-- [ ] T021 [P] Create DatabaseMetadata SQLModel in w2/db_query/backend/app/models/metadata.py
-- [ ] T022 [P] Create QueryHistory SQLModel in w2/db_query/backend/app/models/query.py
-- [ ] T023 [P] Create API request/response schemas (camelCase) in w2/db_query/backend/app/models/schemas.py
-- [ ] T024 Configure Pydantic alias_generator for camelCase globally in w2/db_query/backend/app/models/__init__.py
+- [X] T020 [P] Create DatabaseConnection SQLModel in w2/db_query/backend/app/models/database.py
+- [X] T021 [P] Create DatabaseMetadata SQLModel in w2/db_query/backend/app/models/metadata.py
+- [X] T022 [P] Create QueryHistory SQLModel in w2/db_query/backend/app/models/query.py
+- [X] T023 [P] Create API request/response schemas (camelCase) in w2/db_query/backend/app/models/schemas.py
+- [X] T024 Configure Pydantic alias_generator for camelCase globally in w2/db_query/backend/app/models/**init**.py
 
 **Checkpoint**: Foundation ready - backend can start, database schema created, models defined
 
@@ -247,18 +247,22 @@ Phase 1 (Setup) → US1 (Connections) → US2 (Queries) → US3 (NL2SQL)
 ### Parallel Opportunities
 
 **Within Phase 1**:
+
 - Backend and Frontend setup can proceed in parallel (T001-T006 || T007-T013)
 - Data models can be created in parallel (T020-T024)
 
 **Within Phase 2**:
+
 - Backend services for US1 can be created in parallel (T025-T026)
 - Frontend types can be created in parallel (T035-T036)
 
 **Within Phase 3**:
+
 - US3 and US4 can be implemented in parallel (different features)
 - Backend and frontend work within each story can overlap
 
 **Within Phase 4**:
+
 - All documentation and testing tasks can run in parallel (T078-T088)
 
 ---
@@ -300,12 +304,14 @@ With 2 developers:
 **Total Tasks**: 88
 
 **By Phase**:
+
 - Phase 1 (Setup & Foundation): 24 tasks
 - Phase 2 (Core Features - US1 + US2): 35 tasks (19 for US1, 16 for US2)
 - Phase 3 (Enhanced Features - US3 + US4): 18 tasks (10 for US3, 8 for US4)
 - Phase 4 (Polish & Documentation): 11 tasks
 
 **By Component**:
+
 - Backend: ~45 tasks
 - Frontend: ~35 tasks
 - Documentation/Testing: ~8 tasks
