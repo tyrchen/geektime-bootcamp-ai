@@ -3,7 +3,7 @@
 import asyncpg
 import json
 from typing import Dict, List, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlmodel import Session, select
 from app.models.metadata import DatabaseMetadata
 from app.models.schemas import TableMetadata, ColumnMetadata
@@ -193,7 +193,7 @@ async def cache_metadata(
 
     if existing:
         existing.metadata_json = metadata_json
-        existing.fetched_at = datetime.utcnow()
+        existing.fetched_at = datetime.now(timezone.utc)
         existing.table_count = table_count
         session.add(existing)
         session.commit()
@@ -203,7 +203,7 @@ async def cache_metadata(
         new_metadata = DatabaseMetadata(
             database_name=database_name,
             metadata_json=metadata_json,
-            fetched_at=datetime.utcnow(),
+            fetched_at=datetime.now(timezone.utc),
             table_count=table_count,
         )
         session.add(new_metadata)

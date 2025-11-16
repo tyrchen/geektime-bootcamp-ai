@@ -1,7 +1,7 @@
 """Database connection service for managing PostgreSQL connections."""
 
 import asyncpg
-from typing import Dict, Optional
+from typing import Dict
 from datetime import datetime
 from app.models.database import DatabaseConnection, ConnectionStatus
 
@@ -70,40 +70,3 @@ async def close_all_connection_pools() -> None:
     """Close all connection pools."""
     for name in list(_connection_pools.keys()):
         await close_connection_pool(name)
-
-
-async def create_or_update_connection(
-    name: str,
-    url: str,
-    description: str | None = None,
-    test_connection: bool = True,
-) -> tuple[DatabaseConnection, bool]:
-    """
-    Create or update database connection.
-
-    Args:
-        name: Connection name
-        url: PostgreSQL connection URL
-        description: Optional description
-        test_connection: Whether to test connection before saving
-
-    Returns:
-        Tuple of (DatabaseConnection, is_new)
-
-    Raises:
-        ValueError: If connection test fails
-    """
-    if test_connection:
-        success, error_message = await test_connection(url)
-        if not success:
-            raise ValueError(f"Connection test failed: {error_message}")
-
-    connection = DatabaseConnection(
-        name=name,
-        url=url,
-        description=description,
-        status=ConnectionStatus.ACTIVE,
-        last_connected_at=datetime.utcnow() if test_connection else None,
-    )
-
-    return connection, True

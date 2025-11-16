@@ -2,7 +2,6 @@
 
 import sqlglot
 from sqlglot import exp
-from typing import Literal
 
 
 class SqlValidationError(Exception):

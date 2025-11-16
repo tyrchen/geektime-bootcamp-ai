@@ -2,7 +2,6 @@
 
 from openai import AsyncOpenAI
 from app.config import settings
-from app.models.metadata import DatabaseMetadata
 import logging
 
 logger = logging.getLogger(__name__)

@@ -12,12 +12,11 @@ from app.models.schemas import (
     TableMetadata,
 )
 from app.services.db_connection import (
-    create_or_update_connection,
     test_connection,
     close_connection_pool,
 )
 from app.services.metadata import fetch_metadata
-from datetime import datetime
+from datetime import datetime, timezone
 
 router = APIRouter(prefix="/api/v1/dbs", tags=["databases"])
 
@@ -77,8 +76,8 @@ async def create_or_update_database(
         # Update existing connection
         existing.url = input_data.url
         existing.description = input_data.description
-        existing.updated_at = datetime.utcnow()
-        existing.last_connected_at = datetime.utcnow()
+        existing.updated_at = datetime.now(timezone.utc)
+        existing.last_connected_at = datetime.now(timezone.utc)
         existing.status = ConnectionStatus.ACTIVE
         session.add(existing)
         session.commit()
@@ -91,7 +90,7 @@ async def create_or_update_database(
             url=input_data.url,
             description=input_data.description,
             status=ConnectionStatus.ACTIVE,
-            last_connected_at=datetime.utcnow(),
+            last_connected_at=datetime.now(timezone.utc),
         )
         session.add(new_conn)
         session.commit()
@@ -163,7 +162,7 @@ async def get_database_metadata(
     from app.services.metadata import get_cached_metadata
 
     cached = await get_cached_metadata(session, name)
-    fetched_at = cached.fetched_at if cached else datetime.utcnow()
+    fetched_at = cached.fetched_at if cached else datetime.now(timezone.utc)
     is_stale = cached.is_stale if cached else False
 
     return DatabaseMetadataResponse(
@@ -251,7 +250,7 @@ async def refresh_database_metadata(
     from app.services.metadata import get_cached_metadata
 
     cached = await get_cached_metadata(session, name)
-    fetched_at = cached.fetched_at if cached else datetime.utcnow()
+    fetched_at = cached.fetched_at if cached else datetime.now(timezone.utc)
     is_stale = False  # Just refreshed
 
     return DatabaseMetadataResponse(

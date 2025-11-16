@@ -2,7 +2,6 @@
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
-import os
 
 
 class Settings(BaseSettings):
@@ -19,6 +18,18 @@ class Settings(BaseSettings):
 
     # CORS
     cors_origins: str = "*"
+
+    # Query configuration
+    query_default_limit: int = 1000
+    query_history_retention: int = 50
+
+    # Database pool configuration
+    db_pool_min_size: int = 1
+    db_pool_max_size: int = 5
+    db_pool_command_timeout: int = 60
+
+    # Metadata cache configuration
+    metadata_cache_hours: int = 24
 
     model_config = SettingsConfigDict(
         env_file=".env",

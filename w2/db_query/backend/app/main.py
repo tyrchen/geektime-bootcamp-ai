@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import init_db
 from app.api.v1 import databases, queries
+from app.services.db_connection import close_all_connection_pools
 
 # Initialize database
 init_db()
@@ -40,3 +41,9 @@ async def health_check() -> dict[str, str]:
 async def startup_event() -> None:
     """Initialize database on startup."""
     init_db()
+
+
+@app.on_event("shutdown")
+async def shutdown_event() -> None:
+    """Cleanup resources on shutdown."""
+    await close_all_connection_pools()

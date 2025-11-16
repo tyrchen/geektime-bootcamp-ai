@@ -2,7 +2,7 @@
 
 import time
 from typing import Dict, List, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlmodel import Session, select, desc
 from app.models.query import QueryHistory, QuerySource
 from app.models.schemas import QueryResult, QueryColumn
@@ -159,7 +159,7 @@ async def save_query_history(
     history = QueryHistory(
         database_name=database_name,
         sql_text=sql,
-        executed_at=datetime.utcnow(),
+        executed_at=datetime.now(timezone.utc),
         execution_time_ms=execution_time_ms,
         row_count=row_count,
         success=success,
