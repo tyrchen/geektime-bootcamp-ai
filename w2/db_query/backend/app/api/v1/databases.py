@@ -12,7 +12,7 @@ from app.models.schemas import (
     DatabaseMetadataResponse,
     TableMetadata,
 )
-from app.services import connection_factory
+from app.services.database_service import database_service
 from app.services.metadata import fetch_metadata
 from datetime import datetime, timezone
 
@@ -79,7 +79,7 @@ async def create_or_update_database(
         )
 
     # Test connection
-    success, error_message = await connection_factory.test_connection(db_type, input_data.url)
+    success, error_message = await database_service.test_connection(db_type, input_data.url)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -221,7 +221,7 @@ async def delete_database(
         )
 
     # Close connection pool
-    await connection_factory.close_connection_pool(connection.db_type, name)
+    await database_service.close_connection(connection.db_type, name)
 
     # Delete connection
     session.delete(connection)

@@ -14,7 +14,8 @@ from app.models.schemas import (
     NaturalLanguageInput,
     GeneratedSqlResponse,
 )
-from app.services.query import execute_query, get_query_history
+from app.services.query_wrapper import execute_query_with_service
+from app.services.query import get_query_history
 from app.services.sql_validator import SqlValidationError
 from app.services.nl2sql import nl2sql_service
 from app.services.metadata import get_cached_metadata
@@ -68,7 +69,7 @@ async def execute_sql_query(
 
     # Execute query
     try:
-        result = await execute_query(
+        result = await execute_query_with_service(
             session,
             name,
             connection.db_type,

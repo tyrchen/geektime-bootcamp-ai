@@ -8,3 +8,8 @@
 - KISS 原则
 - 代码质量：DRY, YAGNI, SOLID, etc. 函数原则上不超过 150 行，参数原则上不超过 7 个。
 - 使用 builder 模式
+
+## review 代码
+
+@agent-py-arch 帮我仔细查看 ./w2/db_query/backend
+的架构，目前因为添加了新的数据库，需要重新考虑整体的设计，最好设计一套 interface，为以后添加更多数据库留有余地，不至于到处修改已有代码。设计要符合 Open-Close 和 SOLID 原则。
