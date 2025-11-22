@@ -13,3 +13,7 @@
 
 @agent-py-arch 帮我仔细查看 ./w2/db_query/backend
 的架构，目前因为添加了新的数据库，需要重新考虑整体的设计，最好设计一套 interface，为以后添加更多数据库留有余地，不至于到处修改已有代码。设计要符合 Open-Close 和 SOLID 原则。
+
+## Raflow spec format
+
+将 @specs/w3/raflow/0001-spec.md 的内容组织成格式正确的 markdown 文件，不要丢失任何内容
