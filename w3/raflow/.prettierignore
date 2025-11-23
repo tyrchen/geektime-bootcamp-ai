@@ -1,0 +1,11 @@
+node_modules
+dist
+build
+*.min.js
+*.min.css
+coverage
+.tauri
+src-tauri/target
+Cargo.lock
+yarn.lock
+package-lock.json

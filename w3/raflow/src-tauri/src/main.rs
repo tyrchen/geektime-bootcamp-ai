@@ -4,6 +4,6 @@
 use anyhow::Result;
 
 fn main() -> Result<()> {
-    example_lib::run()?;
+    raflow_lib::run()?;
     Ok(())
 }

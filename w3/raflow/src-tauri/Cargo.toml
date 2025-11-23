@@ -1,46 +1,65 @@
 [package]
-name = "example"
+name = "raflow"
 version = "0.1.0"
-description = "An example Tauri app"
-authors = ["Tyr Chen <tyr.chen@gmail.com>"]
+description = "实时语音听写工具"
+authors = ["RAFlow Team"]
 edition = "2024"
+rust-version = "1.90"
+license = "MIT"
 publish = false
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [lib]
-# The `_lib` suffix may seem redundant but it is necessary
-# to make the lib name unique and wouldn't conflict with the bin name.
-# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
-name = "example_lib"
+name = "raflow_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-anyhow = { workspace = true }
-chrono = { workspace = true }
-dirs = "6"
+# Tauri 核心
+tauri = { workspace = true }
+tauri-plugin-global-shortcut = { workspace = true }
+tauri-plugin-clipboard-manager = { workspace = true }
+tauri-plugin-dialog = { workspace = true }
+tauri-plugin-fs = { workspace = true }
+tauri-plugin-store = { workspace = true }
+
+# 异步运行时
+tokio = { workspace = true }
+tokio-tungstenite = { workspace = true }
+futures-util = { workspace = true }
+
+# 音频处理
+cpal = { workspace = true }
+rubato = { workspace = true }
+
+# 系统交互
+enigo = { workspace = true }
+active-win-pos-rs = { workspace = true }
+
+# 序列化
 serde = { workspace = true }
 serde_json = { workspace = true }
-tauri = { version = "2", features = ["tray-icon"] }
-tauri-plugin-log = { version = "2", features = ["tracing"] }
-tauri-plugin-opener = { version = "2" }
-tauri-plugin-store = { version = "2" }
-tauri-plugin-window-state = { version = "2" }
+
+# 工具库
+anyhow = { workspace = true }
 thiserror = { workspace = true }
-tokio = { workspace = true }
 tracing = { workspace = true }
-app-core = { path = "../app-core" }
+tracing-subscriber = { workspace = true }
+base64 = { workspace = true }
+dashmap = { workspace = true }
+arc-swap = { workspace = true }
+dirs = "6"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc = { workspace = true }
+cocoa = { workspace = true }
+core-foundation = { workspace = true }
+
+[dev-dependencies]
+criterion = "0.7"
+mockall = "0.14"
 
 [features]
-# by default Tauri runs in production mode
-# when `tauri dev` runs it is executed with `cargo run --no-default-features` if `devPath` is an URL
-# otherwise apply `.features("development")` to your tauri builder
-# Default features include production features and development server
 default = ["custom-protocol"]
-# You should remove the "custom-protocol" feature before building for production
-# DO NOT use this feature in production apps as it creates a security risk
-# Read more: https://docs.rs/tauri/2/tauri/dev/security/index.html#isolation-pattern
 custom-protocol = ["tauri/custom-protocol"]

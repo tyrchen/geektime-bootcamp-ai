@@ -3,37 +3,38 @@ mod state;
 
 use anyhow::Result;
 use tauri::Manager;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 pub use state::AppState;
 
-const APP_PATH: &str = "example-app";
+const APP_PATH: &str = "raflow";
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> Result<()> {
-    let app_path = dirs::data_local_dir().unwrap().join(APP_PATH);
+    // 初始化 tracing
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "raflow=debug,tokio=info".into()),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
+    let app_path = dirs::data_local_dir()
+        .ok_or_else(|| anyhow::anyhow!("Failed to get data local dir"))?
+        .join(APP_PATH);
+
     if !app_path.exists() {
         std::fs::create_dir_all(&app_path)?;
     }
+
     let state = AppState::new();
 
     tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init())
-        .plugin(
-            tauri_plugin_log::Builder::new()
-                .target(tauri_plugin_log::Target::new(
-                    tauri_plugin_log::TargetKind::Stdout,
-                ))
-                .target(tauri_plugin_log::Target::new(
-                    tauri_plugin_log::TargetKind::LogDir {
-                        file_name: Some("access.log".to_string()),
-                    },
-                ))
-                .build(),
-        )
-        .invoke_handler(tauri::generate_handler![
-            // Add new commands here
-            commands::greet,
-        ])
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_store::Builder::new().build())
+        .invoke_handler(tauri::generate_handler![commands::greet,])
         .setup(|app| {
             app.manage(state);
             Ok(())

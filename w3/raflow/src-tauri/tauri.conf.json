@@ -1,24 +1,41 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "prompt-vault",
+  "productName": "RAFlow",
   "version": "0.1.0",
-  "identifier": "prompt-vault",
+  "identifier": "com.raflow.app",
   "build": {
     "beforeDevCommand": "yarn dev",
-    "devUrl": "http://localhost:1420",
+    "devUrl": "http://localhost:5173",
     "beforeBuildCommand": "yarn build",
     "frontendDist": "../dist"
   },
   "app": {
     "windows": [
       {
-        "title": "prompt-vault",
-        "width": 800,
-        "height": 600
+        "label": "main",
+        "title": "RAFlow Settings",
+        "width": 600,
+        "height": 400,
+        "visible": false,
+        "center": true,
+        "resizable": false
+      },
+      {
+        "label": "overlay",
+        "title": "RAFlow Overlay",
+        "width": 400,
+        "height": 120,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "visible": false,
+        "center": true,
+        "focus": false
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; connect-src 'self' wss://api.elevenlabs.io"
     }
   },
   "bundle": {
@@ -30,6 +47,10 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "macOS": {
+      "minimumSystemVersion": "10.15",
+      "hardenedRuntime": true
+    }
   }
 }
