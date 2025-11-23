@@ -15,6 +15,7 @@ tauri-plugin-store = "2.4"
 tokio = { version = "1.48", features = ["full"] }
 tokio-tungstenite = { version = "0.28", features = ["rustls-tls-native-roots"] }
 futures-util = "0.3"
+http = "1.2"
 
 # 音频处理
 cpal = "0.16"

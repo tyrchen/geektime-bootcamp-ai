@@ -3601,6 +3601,7 @@ dependencies = [
  "dirs",
  "enigo",
  "futures-util",
+ "http",
  "mockall",
  "objc",
  "rubato",

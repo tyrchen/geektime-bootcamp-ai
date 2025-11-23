@@ -28,6 +28,7 @@ tauri-plugin-store = { workspace = true }
 tokio = { workspace = true }
 tokio-tungstenite = { workspace = true }
 futures-util = { workspace = true }
+http = { workspace = true }
 
 # 音频处理
 cpal = { workspace = true }

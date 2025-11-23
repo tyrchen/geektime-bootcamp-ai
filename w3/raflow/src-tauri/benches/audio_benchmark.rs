@@ -1,5 +1,6 @@
-use criterion::{Criterion, Throughput, black_box, criterion_group, criterion_main};
+use criterion::{Criterion, Throughput, criterion_group, criterion_main};
 use raflow_lib::audio::{AudioResampler, Quality, RingBuffer};
+use std::hint::black_box;
 
 fn bench_resampler(c: &mut Criterion) {
     let mut group = c.benchmark_group("resampler");

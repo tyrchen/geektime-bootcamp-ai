@@ -1,5 +1,6 @@
 pub mod audio;
 mod commands;
+pub mod network;
 mod state;
 
 use anyhow::Result;
