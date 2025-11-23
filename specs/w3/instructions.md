@@ -339,3 +339,11 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 ## 不使用 overlap
 
 现在通过 websocket 发送的间隔是多少？我们是不是可以收集 500ms 或者1s 的内容再去转译？另外，overlay window 没有意义，我是想把内容直接写到当前活跃窗口 focus 的元素中，如果是 input 则直接插入，不是就写到剪切板，用户可以手工插入
+
+## 使用 nnnoiseless
+
+使用 nnnoiseless 来处理噪音，使得转译结果更加准确。
+
+## 使用简体中文
+
+使用简体中文，这个应该是在 elevenlabs API 配置，请查阅其文档。另外 floating 的 window 大小更大一些，可以显示更多的内容。

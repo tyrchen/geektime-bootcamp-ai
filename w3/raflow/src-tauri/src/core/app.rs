@@ -279,6 +279,15 @@ impl AppController {
                     break; // 认证失败，停止处理
                 }
 
+                ServerMessage::CommitThrottled { error } => {
+                    // 提交被限制，这是一个警告，不影响继续运行
+                    warn!("Commit throttled by server: {}", error);
+                    // 可选：发送到前端供调试
+                    if let Err(e) = app.emit("commit_throttled", error) {
+                        warn!("Failed to emit commit_throttled: {}", e);
+                    }
+                }
+
                 ServerMessage::SessionEnded { reason } => {
                     info!("Session ended: {}", reason);
                     if let Err(e) = app.emit("session_ended", reason) {

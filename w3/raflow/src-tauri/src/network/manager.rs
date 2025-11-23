@@ -271,6 +271,17 @@ impl NetworkManager {
                     .await
                     .transition_to_error(error_message.clone());
             }
+            ServerMessage::AuthError { error } => {
+                error!("Authentication error: {}", error);
+                state
+                    .write()
+                    .await
+                    .transition_to_error(error.clone());
+            }
+            ServerMessage::CommitThrottled { error } => {
+                // 这是一个警告，不是致命错误，不需要关闭连接
+                warn!("Commit throttled: {}", error);
+            }
             ServerMessage::SessionEnded { reason } => {
                 info!("Session ended: {}", reason);
                 state.write().await.transition_to_idle();

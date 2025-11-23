@@ -53,7 +53,7 @@ impl Default for ClientConfig {
         Self {
             api_key: String::new(),
             model_id: "scribe_v2_realtime".to_string(),
-            language_code: "zh".to_string(),
+            language_code: "cmn".to_string(), // 使用 ISO 639-3 普通话代码
             encoding: "pcm_16000".to_string(),
         }
     }
@@ -111,8 +111,8 @@ impl ScribeClient {
     pub async fn connect(&self) -> Result<(WsSink, WsStream)> {
         // 构建 URL
         let url = format!(
-            "{}?model_id={}&language_code={}&encoding={}",
-            self.base_url, self.config.model_id, self.config.language_code, self.config.encoding
+            "{}?model_id={}&encoding={}",
+            self.base_url, self.config.model_id, self.config.encoding
         );
 
         debug!("Connecting to: {}", url);

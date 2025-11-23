@@ -192,7 +192,7 @@ impl TextInjector {
     /// 通过剪贴板注入（长文本）
     async fn inject_via_clipboard(&self, text: &str) -> Result<()> {
         debug!("Injecting via clipboard: {} chars", text.len());
-        self.clipboard.inject_via_clipboard(text).await?;
+        self.clipboard.inject_via_clipboard(text, self.config.auto_paste).await?;
         Ok(())
     }
 

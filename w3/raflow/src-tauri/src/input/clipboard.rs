@@ -79,11 +79,14 @@ impl ClipboardInjector {
 
         debug!("Wrote new text to clipboard");
 
-        // 3. 模拟粘贴快捷键
-        let mut keyboard = KeyboardInjector::new()?;
-        keyboard.simulate_paste()?;
-
-        debug!("Simulated paste shortcut");
+        // 3. 模拟粘贴快捷键（如果启用）
+        if auto_paste {
+            let mut keyboard = KeyboardInjector::new()?;
+            keyboard.simulate_paste()?;
+            debug!("Simulated paste shortcut");
+        } else {
+            debug!("Skipped paste simulation (auto_paste=false)");
+        }
 
         // 4. 等待粘贴完成（根据文本长度动态调整）
         let wait_time = (text.len() / 100).clamp(1, 5); // 1-5 秒

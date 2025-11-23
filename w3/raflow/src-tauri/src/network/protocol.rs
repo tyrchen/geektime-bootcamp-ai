@@ -123,6 +123,13 @@ pub enum ServerMessage {
         /// 错误消息
         error: String,
     },
+
+    /// 提交限制（音频时长不足）
+    #[serde(rename = "commit_throttled")]
+    CommitThrottled {
+        /// 错误消息
+        error: String,
+    },
 }
 
 impl ServerMessage {
@@ -133,7 +140,15 @@ impl ServerMessage {
 
     /// 检查是否为错误消息
     pub fn is_error(&self) -> bool {
-        matches!(self, ServerMessage::InputError { .. })
+        matches!(
+            self,
+            ServerMessage::InputError { .. } | ServerMessage::AuthError { .. }
+        )
+    }
+
+    /// 检查是否为警告消息（非致命错误）
+    pub fn is_warning(&self) -> bool {
+        matches!(self, ServerMessage::CommitThrottled { .. })
     }
 
     /// 检查是否为转写消息
