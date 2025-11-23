@@ -23,6 +23,7 @@
       {
         "label": "overlay",
         "title": "RAFlow Overlay",
+        "url": "?overlay",
         "width": 400,
         "height": 120,
         "decorations": false,

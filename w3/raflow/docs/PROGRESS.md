@@ -9,13 +9,13 @@ Phase 1: 项目初始化与基础设施    ✅ 100% 完成
 Phase 2: 音频采集与处理          ✅ 100% 完成
 Phase 3: 网络通信层              ✅ 100% 完成
 Phase 4: 文本注入系统            ✅ 100% 完成
-Phase 5: UI 与交互               ⏸️  待开始
-Phase 6: 系统集成与优化          ⏸️  待开始
+Phase 5: UI 与交互               ✅ 100% 完成
+Phase 6: 系统集成与优化          ✅ 100% 完成
 Phase 7: 测试与质量保证          ⏸️  待开始
 Phase 8: 部署与发布              ⏸️  待开始
 ```
 
-**总体完成度**: 50% (4/8)
+**总体完成度**: 75% (6/8)
 
 ---
 
@@ -118,12 +118,15 @@ Phase 8: 部署与发布              ⏸️  待开始
 |------|---------|---------|---------|------|
 | Audio | 19 | 0 | 5 | 24 |
 | Network | 21 | 5 | 3 | 29 |
-| System | 6 | 0 | 1 | 7 |
-| Input | 10 | 8 | 1 | 19 |
-| **总计** | **56** | **13** | **10** | **79** |
+| System | 7 | 0 | 3 | 10 |
+| Input | 10 | 8 | 4 | 22 |
+| Config | 2 | 0 | 0 | 2 |
+| Commands | 4 | 0 | 0 | 4 |
+| State | 3 | 0 | 0 | 3 |
+| **总计** | **66** | **13** | **15** | **94** |
 
 ### 测试通过率
-- **通过**: 72 个
+- **通过**: 84 个
 - **忽略**: 12 个（需要 GUI/硬件/API）
 - **失败**: 0 个
 - **通过率**: 100%
@@ -164,11 +167,35 @@ src-tauri/src/input/
   injector.rs      ~220 行
   Total:           ~685 行
 
+# 配置和命令模块（Phase 5）
+src-tauri/src/
+  config/mod.rs    ~175 行
+  system/tray.rs   ~95 行
+  commands.rs      ~190 行
+  state.rs         ~95 行
+  Total:           ~555 行
+
+# 前端代码（Phase 5）
+src/
+  store/           ~155 行
+  components/      ~315 行
+  styles/          ~350 行
+  App.tsx          ~15 行
+  Total:           ~835 行
+
+# 集成和优化（Phase 6）
+src-tauri/src/
+  core/app.rs      ~280 行
+  system/hotkey.rs ~150 行
+  state.rs (重构)  ~160 行
+  lib.rs (更新)    +55 行
+  Total:           ~645 行
+
 # 测试代码
 tests/               ~310 行
 benches/             ~125 行
 
-Grand Total:         ~3370 行
+Grand Total:         ~6055 行
 ```
 
 ---
@@ -213,20 +240,83 @@ Grand Total:         ~3370 行
 
 ---
 
-## 下一阶段规划
+## Phase 5: UI 与交互 ✅
 
-### Phase 5: UI 与交互（预计 10 天）
+**完成时间**: 2025-11-22
 
-**核心任务**：
-1. React 悬浮窗组件（4 天）
-2. Zustand 状态管理（2 天）
-3. 系统托盘实现（2 天）
-4. 设置面板开发（3 天）
+### 交付物
+- ✅ Zustand 状态管理（2 个 store）
+- ✅ React 悬浮窗组件
+- ✅ 设置面板组件
+- ✅ 系统托盘实现
+- ✅ 配置管理模块
+- ✅ 7 个 Tauri Commands 完整实现
+- ✅ CSS 样式系统
+- ✅ 前端构建成功
 
-**关键技术**：
-- React 19.2
-- Zustand 5.0
-- TailwindCSS 4.1
+### 核心功能
+
+1. **状态管理**
+   - transcript store（转写状态）
+   - settings store（配置状态）
+
+2. **UI 组件**
+   - OverlayWindow（悬浮窗）
+   - SettingsPanel（设置面板）
+   - 毛玻璃效果设计
+   - 暗色模式支持
+
+3. **后端命令**
+   - 配置管理（get/save）
+   - 录音控制（start/stop）
+   - 工具命令（devices/blacklist/test）
+
+### 验收
+- ✅ 所有 Tauri Commands 完整实现
+- ✅ 配置持久化到 Tauri Store
+- ✅ 前端构建成功
+- ✅ 所有测试通过（81 个）
+- ✅ AppState 支持运行时状态
+
+---
+
+## Phase 6: 系统集成与优化 ✅
+
+**完成时间**: 2025-11-22
+
+### 交付物
+- ✅ 无锁 Channel 架构（完全重构 AppState）
+- ✅ AppController 主控制器
+- ✅ 热键管理集成
+- ✅ 音频→网络→转写完整流程
+- ✅ 转写→注入完整流程
+- ✅ 优雅的启动/停止机制
+
+### 核心创新
+
+1. **Channel 优先架构** ⭐
+   - mpsc channel（控制命令）
+   - watch channel（状态广播）
+   - oneshot channel（请求-响应）
+   - 零 Arc<Mutex> / Arc<RwLock>
+
+2. **单一所有权模型**
+   - AppController 在专属线程拥有所有资源
+   - 外部通过 channel 通信
+   - 自动 Drop 清理
+
+3. **完整的端到端流程**
+   - 热键触发 → 音频采集 → 网络传输
+   - 转写接收 → 事件分发 → 文本注入
+   - 优雅停止 → 资源释放
+
+### 验收
+- ✅ 无锁并发设计
+- ✅ 完整的 start/stop 逻辑
+- ✅ AudioManager 正确停止
+- ✅ 所有测试通过（84 个）
+- ✅ 符合 Rust 最佳实践
+- ✅ 遵循 CLAUDE.md 指导
 
 ---
 
