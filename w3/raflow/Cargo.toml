@@ -36,6 +36,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 base64 = "0.22"
 dashmap = "6.1"
 arc-swap = "1.7"
+crossbeam = "0.8"
 
 [workspace.dependencies.objc]
 version = "0.2"

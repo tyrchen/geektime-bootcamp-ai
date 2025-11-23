@@ -1,5 +1,10 @@
 # Instructions
 
+## Basics
+
+- 本项目在 ./w3/raflow 目录下，这是项目的根目录。
+- 不要把任何用户要求以外的 *.md 放在项目根目录，请放在 ./docs 目录下。
+
 ## Rust
 
 - 总是使用 Rust 2024，对于 dependencies 使用 workspace 管理，并访问 crate 相关的页面，了解其 API，确保使用最新的版本
