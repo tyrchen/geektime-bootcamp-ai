@@ -347,3 +347,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 ## 使用简体中文
 
 使用简体中文，这个应该是在 elevenlabs API 配置，请查阅其文档。另外 floating 的 window 大小更大一些，可以显示更多的内容。
+
+## 生成更新的 design doc
+
+仔细阅读目前 ./w3/raflow 的代码，think ultra hard，构建一个更新的 design doc，放在 ./specs/w3/raflow/0004-design.md 文件中，输出为中文，使用 mermaid 绘制架构，设计，组件，流程等图表并详细说明。
