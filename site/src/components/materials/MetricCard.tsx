@@ -114,47 +114,85 @@ export default function MetricCard({
 
       {/* Number Type */}
       {type === 'number' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md">
           {items.map((item, idx) => (
             <div
               key={idx}
-              className="text-center p-lg transition-all duration-200 hover:scale-105"
+              className="group relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
               style={{
                 borderRadius: 0,
-                backgroundColor: 'var(--md-neutral-100)',
+                backgroundColor: 'var(--md-white)',
+                border: '2px solid var(--md-graphite)',
+                padding: 'var(--space-5)',
               }}
             >
-              {item.icon && (
-                <div className="text-4xl mb-md">{item.icon}</div>
-              )}
+              {/* 左侧色块指示器 */}
               <div
-                className="text-small mb-sm"
-                style={{ color: 'var(--md-neutral-700)' }}
-              >
-                {item.provider}
-              </div>
-              <div
-                className="text-h2 font-bold"
-                style={{ color: item.color }}
-              >
-                {item.value}
-                {item.unit && (
+                className="absolute left-0 top-0 bottom-0 w-1 transition-all duration-300 group-hover:w-2"
+                style={{
+                  backgroundColor: item.color,
+                }}
+              />
+
+              {/* 内容区域 */}
+              <div style={{ paddingLeft: 'var(--space-3)' }}>
+                {/* 标签 */}
+                <div
+                  className="text-ui font-semibold mb-3"
+                  style={{
+                    color: 'var(--md-ink)',
+                    lineHeight: '1.4',
+                  }}
+                >
+                  {item.label || item.provider}
+                </div>
+
+                {/* 数值和单位 */}
+                <div className="flex items-baseline gap-2">
                   <span
-                    className="text-body ml-1"
-                    style={{ color: 'var(--md-neutral-700)' }}
+                    className="font-bold transition-colors duration-300"
+                    style={{
+                      fontSize: '2.5rem',
+                      color: item.color,
+                      lineHeight: '1',
+                      fontFamily: 'var(--font-family-mono)',
+                    }}
                   >
-                    {item.unit}
+                    {item.value}
                   </span>
+                  {item.unit && (
+                    <span
+                      className="text-h3 font-medium"
+                      style={{
+                        color: 'var(--md-slate)',
+                      }}
+                    >
+                      {item.unit}
+                    </span>
+                  )}
+                </div>
+
+                {/* 备注 */}
+                {item.note && (
+                  <div
+                    className="text-tiny mt-3"
+                    style={{
+                      color: 'var(--md-slate)',
+                      lineHeight: '1.4',
+                    }}
+                  >
+                    {item.note}
+                  </div>
                 )}
               </div>
-              {item.note && (
-                <div
-                  className="text-tiny mt-sm"
-                  style={{ color: 'var(--md-neutral-700)' }}
-                >
-                  {item.note}
-                </div>
-              )}
+
+              {/* Hover 效果背景 */}
+              <div
+                className="absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-300 pointer-events-none"
+                style={{
+                  backgroundColor: item.color,
+                }}
+              />
             </div>
           ))}
         </div>
