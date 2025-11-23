@@ -184,7 +184,7 @@ impl AppController {
 
                 ServerMessage::CommittedTranscript { text, confidence } => {
                     info!(
-                        "Committed transcript: {} (confidence: {})",
+                        "Committed transcript: {} (confidence: {:?})",
                         text, confidence
                     );
 
@@ -194,7 +194,7 @@ impl AppController {
                         serde_json::json!({
                             "text": text,
                             "is_final": true,
-                            "confidence": confidence,
+                            "confidence": confidence.unwrap_or(1.0),
                         }),
                     ) {
                         warn!("Failed to emit committed transcript: {}", e);
@@ -257,6 +257,14 @@ impl AppController {
                     if let Err(e) = app.emit("api_error", error_message) {
                         warn!("Failed to emit api_error: {}", e);
                     }
+                }
+
+                ServerMessage::AuthError { error } => {
+                    error!("Authentication error: {}", error);
+                    if let Err(e) = app.emit("auth_error", error) {
+                        warn!("Failed to emit auth_error: {}", e);
+                    }
+                    break; // 认证失败，停止处理
                 }
 
                 ServerMessage::SessionEnded { reason } => {

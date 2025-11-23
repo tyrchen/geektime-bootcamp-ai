@@ -2,7 +2,7 @@
 //!
 //! 使用 tauri-plugin-global-shortcut 实现全局热键
 
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 use thiserror::Error;
 use tracing::{debug, info, warn};
@@ -45,42 +45,19 @@ impl HotkeyManager {
         // 解析热键字符串
         let shortcut = Self::parse_hotkey(hotkey_str)?;
 
-        // 注册热键
+        // 注册热键（仅响应 Pressed 事件，用于切换）
         app.global_shortcut()
             .on_shortcut(shortcut, move |app, _shortcut, event| {
-                debug!("Hotkey event: {:?}", event);
+                // 只处理按键按下事件（切换模式）
+                if event.state != ShortcutState::Pressed {
+                    return;
+                }
 
-                match event.state {
-                    ShortcutState::Pressed => {
-                        info!("Hotkey pressed");
-                        // 发送热键按下事件
-                        if let Err(e) = app.emit("hotkey_pressed", ()) {
-                            warn!("Failed to emit hotkey_pressed event: {}", e);
-                        }
+                info!("Hotkey pressed - toggling recording");
 
-                        // 显示悬浮窗
-                        if let Some(overlay) = app.get_webview_window("overlay")
-                            && let Err(e) = overlay.show()
-                        {
-                            warn!("Failed to show overlay: {}", e);
-                        }
-                    }
-                    ShortcutState::Released => {
-                        info!("Hotkey released");
-                        // 发送热键释放事件
-                        if let Err(e) = app.emit("hotkey_released", ()) {
-                            warn!("Failed to emit hotkey_released event: {}", e);
-                        }
-
-                        // 隐藏悬浮窗（延迟执行，等待转写完成）
-                        let app_clone = app.clone();
-                        tokio::spawn(async move {
-                            tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-                            if let Some(overlay) = app_clone.get_webview_window("overlay") {
-                                let _ = overlay.hide();
-                            }
-                        });
-                    }
+                // 发送切换事件到前端
+                if let Err(e) = app.emit("hotkey_toggle", ()) {
+                    warn!("Failed to emit hotkey_toggle event: {}", e);
                 }
             })
             .map_err(|e| HotkeyError::RegisterFailed(e.to_string()))?;

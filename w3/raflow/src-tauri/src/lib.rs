@@ -45,6 +45,7 @@ pub fn run() -> Result<()> {
             commands::save_config,
             commands::start_recording,
             commands::stop_recording,
+            commands::toggle_recording,
             commands::list_audio_devices,
             commands::get_blacklist,
             commands::test_injection,

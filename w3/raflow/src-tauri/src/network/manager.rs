@@ -127,26 +127,50 @@ impl NetworkManager {
         tokio::spawn(async move {
             info!("Send task started");
 
-            while let Some(audio_chunk) = audio_rx.recv().await {
-                // 创建消息
-                let msg = ClientMessage::audio_chunk(&audio_chunk);
+            let mut buffer = Vec::new();
+            let mut last_send = tokio::time::Instant::now();
+            const BATCH_INTERVAL_MS: u64 = 500; // 累积 500ms 再发送
 
-                // 序列化为 JSON
-                let json = match msg.to_json() {
-                    Ok(j) => j,
-                    Err(e) => {
-                        error!("Failed to serialize message: {}", e);
-                        continue;
+            loop {
+                tokio::select! {
+                    // 接收音频数据
+                    Some(audio_chunk) = audio_rx.recv() => {
+                        buffer.extend_from_slice(&audio_chunk);
                     }
-                };
 
-                // 发送
-                if let Err(e) = ws_sink.send(Message::Text(json.into())).await {
-                    error!("Failed to send audio: {}", e);
-                    break;
+                    // 定时发送
+                    _ = tokio::time::sleep_until(last_send + tokio::time::Duration::from_millis(BATCH_INTERVAL_MS)) => {
+                        if !buffer.is_empty() {
+                            // 创建消息
+                            let msg = ClientMessage::audio_chunk(&buffer);
+
+                            // 序列化为 JSON
+                            let json = match msg.to_json() {
+                                Ok(j) => j,
+                                Err(e) => {
+                                    error!("Failed to serialize message: {}", e);
+                                    buffer.clear();
+                                    last_send = tokio::time::Instant::now();
+                                    continue;
+                                }
+                            };
+
+                            // 发送
+                            if let Err(e) = ws_sink.send(Message::Text(json.into())).await {
+                                error!("Failed to send audio: {}", e);
+                                break;
+                            }
+
+                            debug!("Sent batched audio: {} samples (~{}ms)",
+                                buffer.len(),
+                                (buffer.len() as f64 / 16000.0 * 1000.0) as u64
+                            );
+
+                            buffer.clear();
+                            last_send = tokio::time::Instant::now();
+                        }
+                    }
                 }
-
-                debug!("Sent audio chunk: {} samples", audio_chunk.len());
             }
 
             info!("Send task stopped");

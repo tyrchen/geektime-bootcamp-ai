@@ -4,7 +4,7 @@ resolver = "2"
 
 [workspace.dependencies]
 # Tauri 核心生态
-tauri = { version = "2.9", features = ["tray-icon"] }
+tauri = { version = "2.9", features = ["tray-icon", "macos-private-api"] }
 tauri-plugin-global-shortcut = "2.3.1"
 tauri-plugin-clipboard-manager = "2.3"
 tauri-plugin-dialog = "2.4"
@@ -16,6 +16,7 @@ tokio = { version = "1.48", features = ["full"] }
 tokio-tungstenite = { version = "0.28", features = ["rustls-tls-native-roots"] }
 futures-util = "0.3"
 http = "1.2"
+rustls = { version = "0.23", features = ["aws-lc-rs"] }
 
 # 音频处理
 cpal = "0.16"

@@ -71,8 +71,9 @@ pub enum ServerMessage {
     PartialTranscript {
         /// 转写文本
         text: String,
-        /// 创建时间戳（毫秒）
-        created_at_ms: u64,
+        /// 创建时间戳（毫秒，可选）
+        #[serde(default)]
+        created_at_ms: Option<u64>,
     },
 
     /// 最终转写结果（已定稿）
@@ -80,8 +81,9 @@ pub enum ServerMessage {
     CommittedTranscript {
         /// 转写文本
         text: String,
-        /// 置信度（0.0 - 1.0）
-        confidence: f32,
+        /// 置信度（0.0 - 1.0，可选）
+        #[serde(default)]
+        confidence: Option<f32>,
     },
 
     /// 输入错误
@@ -97,6 +99,13 @@ pub enum ServerMessage {
         /// 结束原因
         #[serde(default)]
         reason: String,
+    },
+
+    /// 认证错误
+    #[serde(rename = "auth_error")]
+    AuthError {
+        /// 错误消息
+        error: String,
     },
 }
 
@@ -192,7 +201,7 @@ mod tests {
                 created_at_ms,
             } => {
                 assert_eq!(text, "hello world");
-                assert_eq!(created_at_ms, 1234567890);
+                assert_eq!(created_at_ms, Some(1234567890));
             }
             _ => panic!("Expected PartialTranscript"),
         }
@@ -213,7 +222,7 @@ mod tests {
         match message {
             ServerMessage::CommittedTranscript { text, confidence } => {
                 assert_eq!(text, "final text");
-                assert!((confidence - 0.98).abs() < 0.01);
+                assert!((confidence.unwrap() - 0.98).abs() < 0.01);
             }
             _ => panic!("Expected CommittedTranscript"),
         }

@@ -5,7 +5,11 @@
 use futures_util::{StreamExt, stream::SplitSink, stream::SplitStream};
 use thiserror::Error;
 use tokio::net::TcpStream;
-use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
+use tokio_tungstenite::{
+    connect_async,
+    tungstenite::{client::IntoClientRequest, Message},
+    MaybeTlsStream, WebSocketStream,
+};
 use tracing::{debug, info};
 
 #[derive(Error, Debug)]
@@ -113,25 +117,19 @@ impl ScribeClient {
 
         debug!("Connecting to: {}", url);
 
-        // 创建 WebSocket 请求
-        let request = url
-            .parse::<http::Uri>()
+        // 使用 IntoClientRequest trait 添加自定义 header
+        let mut request = url.into_client_request()
             .map_err(|e| ClientError::InvalidUrl(e.to_string()))?;
 
-        let mut request = http::Request::builder()
-            .uri(request)
-            .header("xi-api-key", &self.config.api_key)
-            .body(())
-            .map_err(|e| ClientError::ConnectionFailed(e.to_string()))?;
+        // 添加 API Key header
+        request.headers_mut()
+            .insert("xi-api-key", self.config.api_key.parse()
+                .map_err(|_| ClientError::AuthenticationFailed("Invalid API key format".to_string()))?);
 
-        // 添加必要的 headers
-        *request.headers_mut() = http::HeaderMap::new();
-        request
-            .headers_mut()
-            .insert("xi-api-key", self.config.api_key.parse().unwrap());
+        debug!("Request headers: {:?}", request.headers());
 
         // 连接
-        let (ws_stream, response) = connect_async(url)
+        let (ws_stream, response) = connect_async(request)
             .await
             .map_err(|e| ClientError::ConnectionFailed(e.to_string()))?;
 

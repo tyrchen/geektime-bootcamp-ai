@@ -2,7 +2,7 @@
 //!
 //! 定义前端可以调用的后端命令
 
-use tauri::{AppHandle, State, command};
+use tauri::{command, AppHandle, Manager, State};
 use tracing::{debug, error, info, warn};
 
 use crate::AppState;
@@ -73,6 +73,41 @@ pub async fn stop_recording(state: State<'_, AppState>) -> Result<(), String> {
     state.stop_recording().await?;
 
     info!("Recording stopped");
+
+    Ok(())
+}
+
+/// 切换录音状态（热键触发）
+#[command]
+pub async fn toggle_recording(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
+    info!("Toggle recording command");
+
+    let current_state = state.get_state();
+
+    match current_state {
+        RecordingState::Idle => {
+            // 当前空闲，开始录音
+            info!("Current idle, starting recording");
+
+            // 显示悬浮窗
+            if let Some(overlay) = app.get_webview_window("overlay") {
+                let _ = overlay.show();
+            }
+
+            start_recording(app, state).await?;
+        }
+        RecordingState::Recording | RecordingState::Processing => {
+            // 当前录音中，停止录音
+            info!("Current recording, stopping");
+
+            stop_recording(state).await?;
+
+            // 隐藏悬浮窗
+            if let Some(overlay) = app.get_webview_window("overlay") {
+                let _ = overlay.hide();
+            }
+        }
+    }
 
     Ok(())
 }

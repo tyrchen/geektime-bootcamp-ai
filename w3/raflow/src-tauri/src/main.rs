@@ -4,6 +4,9 @@
 use anyhow::Result;
 
 fn main() -> Result<()> {
+    // 安装 rustls 的默认 crypto provider
+    let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
+
     raflow_lib::run()?;
     Ok(())
 }
