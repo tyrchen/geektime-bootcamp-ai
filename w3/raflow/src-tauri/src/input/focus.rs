@@ -59,9 +59,11 @@ impl FocusManager {
         }
 
         // 等待系统将焦点归还给目标应用
-        sleep(Duration::from_millis(wait_ms)).await;
+        // 增加等待时间，确保焦点真正切换
+        let extended_wait = wait_ms.max(200); // 至少等待 200ms
+        sleep(Duration::from_millis(extended_wait)).await;
 
-        debug!("Focus should be on target window now");
+        debug!("Focus should be on target window now (waited {}ms)", extended_wait);
 
         Ok(())
     }

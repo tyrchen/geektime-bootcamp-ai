@@ -17,6 +17,19 @@ const APP_PATH: &str = "raflow";
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> Result<()> {
+    // 设置 panic hook 捕获崩溃信息
+    std::panic::set_hook(Box::new(|panic_info| {
+        eprintln!("=== PANIC ===");
+        eprintln!("{}", panic_info);
+        if let Some(location) = panic_info.location() {
+            eprintln!("Location: {}:{}:{}", location.file(), location.line(), location.column());
+        }
+        if let Some(s) = panic_info.payload().downcast_ref::<&str>() {
+            eprintln!("Panic message: {}", s);
+        }
+        eprintln!("=============");
+    }));
+
     // 初始化 tracing
     tracing_subscriber::registry()
         .with(

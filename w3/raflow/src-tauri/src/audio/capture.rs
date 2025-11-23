@@ -85,7 +85,7 @@ impl AudioCapture {
     /// 启动音频流
     ///
     /// # Arguments
-    /// * `callback` - 音频数据回调函数，每次接收到新的音频数据时调用
+    /// * `callback` - 音频数据回调函数，每次接收到新的音频数据时调用（单声道数据）
     ///
     /// # Example
     /// ```no_run
@@ -104,10 +104,31 @@ impl AudioCapture {
             warn!("Audio stream error: {}", err);
         };
 
+        let channels = self.config.channels;
+        info!("Audio capture channels: {}", channels);
+
         let stream = self.device.build_input_stream(
             &self.config,
             move |data: &[f32], _: &cpal::InputCallbackInfo| {
-                callback(data);
+                // 如果是立体声或多声道，转换为单声道
+                if channels > 1 {
+                    // 平均所有声道的数据转换为单声道
+                    let mono_samples = data.len() / channels as usize;
+                    let mut mono_data = Vec::with_capacity(mono_samples);
+
+                    for i in 0..mono_samples {
+                        let mut sum = 0.0f32;
+                        for ch in 0..channels as usize {
+                            sum += data[i * channels as usize + ch];
+                        }
+                        mono_data.push(sum / channels as f32);
+                    }
+
+                    callback(&mono_data);
+                } else {
+                    // 已经是单声道，直接传递
+                    callback(data);
+                }
             },
             error_callback,
             None,
@@ -208,5 +229,34 @@ mod tests {
         let sample_rate = capture.sample_rate();
         println!("Sample rate: {} Hz", sample_rate);
         assert!(sample_rate > 0);
+    }
+
+    #[test]
+    fn test_stereo_to_mono_conversion() {
+        // 测试立体声到单声道的转换逻辑
+        let channels = 2u16;
+        let stereo_data = vec![
+            1.0, 2.0, // 第一个样本: L=1.0, R=2.0
+            3.0, 4.0, // 第二个样本: L=3.0, R=4.0
+            5.0, 6.0, // 第三个样本: L=5.0, R=6.0
+        ];
+
+        // 模拟转换逻辑
+        let mono_samples = stereo_data.len() / channels as usize;
+        let mut mono_data = Vec::with_capacity(mono_samples);
+
+        for i in 0..mono_samples {
+            let mut sum = 0.0f32;
+            for ch in 0..channels as usize {
+                sum += stereo_data[i * channels as usize + ch];
+            }
+            mono_data.push(sum / channels as f32);
+        }
+
+        // 验证结果
+        assert_eq!(mono_data.len(), 3);
+        assert_eq!(mono_data[0], 1.5); // (1.0 + 2.0) / 2
+        assert_eq!(mono_data[1], 3.5); // (3.0 + 4.0) / 2
+        assert_eq!(mono_data[2], 5.5); // (5.0 + 6.0) / 2
     }
 }

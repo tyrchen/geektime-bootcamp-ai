@@ -14,6 +14,9 @@ pub enum ClientMessage {
     AudioChunk {
         /// Base64 编码的 PCM 音频数据（i16 小端格式）
         audio_base_64: String,
+        /// 是否提交当前段落（触发 committed_transcript）
+        #[serde(skip_serializing_if = "Option::is_none")]
+        commit: Option<bool>,
     },
 }
 
@@ -43,7 +46,20 @@ impl ClientMessage {
         // Base64 编码
         let audio_base_64 = general_purpose::STANDARD.encode(bytes);
 
-        Self::AudioChunk { audio_base_64 }
+        Self::AudioChunk {
+            audio_base_64,
+            commit: None,
+        }
+    }
+
+    /// 创建提交消息（触发 committed_transcript）
+    ///
+    /// 发送空音频块并设置 commit=true，通知服务器当前语音段落结束
+    pub fn commit() -> Self {
+        Self::AudioChunk {
+            audio_base_64: String::new(),
+            commit: Some(true),
+        }
     }
 
     /// 序列化为 JSON 字符串

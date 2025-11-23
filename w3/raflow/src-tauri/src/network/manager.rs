@@ -129,13 +129,19 @@ impl NetworkManager {
 
             let mut buffer = Vec::new();
             let mut last_send = tokio::time::Instant::now();
+            let mut last_audio_received = tokio::time::Instant::now();
+            let mut committed = false; // 是否已发送 commit
+
             const BATCH_INTERVAL_MS: u64 = 500; // 累积 500ms 再发送
+            const SILENCE_COMMIT_MS: u64 = 2000; // 静音 2 秒后自动 commit
 
             loop {
                 tokio::select! {
                     // 接收音频数据
                     Some(audio_chunk) = audio_rx.recv() => {
                         buffer.extend_from_slice(&audio_chunk);
+                        last_audio_received = tokio::time::Instant::now();
+                        committed = false; // 收到新音频，重置 commit 状态
                     }
 
                     // 定时发送
@@ -167,6 +173,23 @@ impl NetworkManager {
                             );
 
                             buffer.clear();
+                            last_send = tokio::time::Instant::now();
+                        } else {
+                            // 缓冲区为空，检查是否需要发送 commit
+                            let silence_duration = last_audio_received.elapsed();
+                            if !committed && silence_duration.as_millis() >= SILENCE_COMMIT_MS as u128 {
+                                info!("Silence detected for {}ms, sending commit signal", silence_duration.as_millis());
+
+                                let commit_msg = ClientMessage::commit();
+                                if let Ok(json) = commit_msg.to_json() {
+                                    if let Err(e) = ws_sink.send(Message::Text(json.into())).await {
+                                        error!("Failed to send commit: {}", e);
+                                        break;
+                                    }
+                                    committed = true;
+                                }
+                            }
+
                             last_send = tokio::time::Instant::now();
                         }
                     }

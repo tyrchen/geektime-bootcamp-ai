@@ -1,25 +1,29 @@
 //! 音频处理模块
 //!
-//! 包含音频采集、缓冲、重采样等功能
+//! 包含音频采集、缓冲、重采样、噪声抑制等功能
 
 mod buffer;
 mod capture;
+mod processor;
 mod resampler;
 
 pub use buffer::RingBuffer;
 pub use capture::{AudioCapture, CaptureError};
+pub use processor::{AudioProcessor, AudioProcessorConfig, NoiseSuppressionLevel, ProcessorError};
 pub use resampler::{AudioResampler, Quality, ResamplerError};
 
 use tokio::sync::mpsc;
-use tracing::{debug, error, info};
+use tracing::{trace, debug, error, info};
 
 /// 音频管理器
 ///
-/// 整合音频采集、缓冲和重采样功能，提供统一的音频处理接口
+/// 整合音频采集、缓冲、重采样和噪声抑制功能，提供统一的音频处理接口
 pub struct AudioManager {
     capture: AudioCapture,
     buffer: RingBuffer,
     output_tx: mpsc::Sender<Vec<i16>>,
+    enable_noise_suppression: bool,
+    noise_suppression_level: NoiseSuppressionLevel,
 }
 
 impl AudioManager {
@@ -47,10 +51,29 @@ impl AudioManager {
     /// }
     /// ```
     pub fn new(output_tx: mpsc::Sender<Vec<i16>>) -> Result<Self, CaptureError> {
+        // 默认启用降噪（但会根据采样率自动决定是否实际使用）
+        Self::with_noise_suppression(output_tx, true, NoiseSuppressionLevel::default())
+    }
+
+    /// 创建新的音频管理器（带噪声抑制配置）
+    ///
+    /// # Arguments
+    /// * `output_tx` - 用于发送处理后音频数据的通道
+    /// * `enable_noise_suppression` - 是否启用噪声抑制
+    /// * `noise_suppression_level` - 噪声抑制级别
+    pub fn with_noise_suppression(
+        output_tx: mpsc::Sender<Vec<i16>>,
+        enable_noise_suppression: bool,
+        noise_suppression_level: NoiseSuppressionLevel,
+    ) -> Result<Self, CaptureError> {
         let capture = AudioCapture::new()?;
         let sample_rate = capture.sample_rate();
 
         info!("Device sample rate: {}Hz", sample_rate);
+        info!(
+            "Noise suppression: enabled={}, level={:?}",
+            enable_noise_suppression, noise_suppression_level
+        );
 
         // 创建环形缓冲区：200 个块（约 4 秒缓冲），每块最大 2048 帧
         let buffer = RingBuffer::new(200, 2048);
@@ -59,6 +82,8 @@ impl AudioManager {
             capture,
             buffer,
             output_tx,
+            enable_noise_suppression,
+            noise_suppression_level,
         })
     }
 
@@ -79,7 +104,7 @@ impl AudioManager {
         })?;
 
         // 启动消费者任务
-        self.spawn_consumer_task(sample_rate);
+        self.spawn_consumer_task(sample_rate, self.enable_noise_suppression, self.noise_suppression_level);
 
         Ok(())
     }
@@ -102,18 +127,37 @@ impl AudioManager {
 
     /// 生成消费者任务
     ///
-    /// 从缓冲区读取音频数据，进行重采样和量化，然后发送到输出通道
-    fn spawn_consumer_task(&self, sample_rate: u32) {
+    /// 从缓冲区读取音频数据，进行重采样、噪声抑制和量化，然后发送到输出通道
+    fn spawn_consumer_task(&self, sample_rate: u32, enable_noise_suppression: bool, _noise_level: NoiseSuppressionLevel) {
         let buffer = self.buffer.clone();
         let output_tx = self.output_tx.clone();
 
         tokio::spawn(async move {
             info!("Audio consumer task started");
 
-            // 使用 Medium 质量以提高处理速度（High 质量初始化太慢）
-            // 第一次初始化使用最大可能块大小
+            // 使用 Low 质量（最快初始化，够用）
             let mut resampler: Option<AudioResampler> = None;
             let mut last_chunk_size = 0usize;
+
+            // 创建噪声抑制处理器（如果启用）
+            // 注意：RNNoise 严格要求 48kHz 采样率，音频已在 AudioCapture 中转换为单声道
+            let mut noise_processor: Option<AudioProcessor> = if enable_noise_suppression {
+                // 检查设备采样率
+                if sample_rate == 48000 {
+                    info!("Noise suppression processor initialized (48kHz, mono)");
+                    Some(AudioProcessor::new())
+                } else {
+                    info!("Noise suppression disabled: device sample rate is {}Hz, RNNoise requires 48kHz", sample_rate);
+                    None
+                }
+            } else {
+                info!("Noise suppression disabled by configuration");
+                None
+            };
+
+            // 静音检测状态
+            let mut silence_chunks = 0usize; // 连续静音的块数
+            let silence_threshold = 6; // 连续 6 个块（约 3 秒）认为是持续静音，避免吞掉尾音
 
             loop {
                 if let Some(audio_chunk) = buffer.pop() {
@@ -125,7 +169,6 @@ impl AudioManager {
 
                         let start = std::time::Instant::now();
 
-                        // 使用 Low 质量（最快初始化，够用）
                         resampler = match AudioResampler::new(sample_rate, 16000, chunk_len, 1, Quality::Low)
                         {
                             Ok(r) => {
@@ -141,9 +184,76 @@ impl AudioManager {
                         };
                     }
 
+                    // 应用噪声抑制（在重采样前，因为 RNNoise 需要 48kHz）
+                    let mut processed_chunk = audio_chunk.clone();
+                    let mut is_silence = false;
+
+                    if let Some(ref mut processor) = noise_processor {
+                        let frame_size = processor.frame_size();
+                        let mut temp_output = Vec::with_capacity(audio_chunk.len());
+                        let mut vad_sum = 0.0f32;
+                        let mut vad_count = 0;
+
+                        for chunk in audio_chunk.chunks(frame_size) {
+                            if chunk.len() == frame_size {
+                                match processor.process(chunk) {
+                                    Ok((processed_frame, vad_prob)) => {
+                                        temp_output.extend_from_slice(&processed_frame);
+                                        vad_sum += vad_prob;
+                                        vad_count += 1;
+                                    }
+                                    Err(e) => {
+                                        error!("Noise suppression error: {}", e);
+                                        temp_output.extend_from_slice(chunk);
+                                    }
+                                }
+                            } else {
+                                temp_output.extend_from_slice(chunk);
+                            }
+                        }
+
+                        processed_chunk = temp_output;
+
+                        // 静音检测：VAD + 能量双重检测
+                        if vad_count > 0 {
+                            let avg_vad = vad_sum / vad_count as f32;
+                            let energy: f32 = processed_chunk.iter().map(|&x| x * x).sum::<f32>() / processed_chunk.len() as f32;
+
+                            // 静音判断：VAD < 0.05 且 能量 < 0.00005（更宽松的阈值，避免吞字）
+                            is_silence = avg_vad < 0.05 && energy < 0.00005;
+
+                            if is_silence {
+                                trace!("Silence detected: VAD={:.3}, Energy={:.6}", avg_vad, energy);
+                            }
+                        }
+                    } else {
+                        // 没有降噪时，只用能量检测（更低的阈值）
+                        let energy: f32 = audio_chunk.iter().map(|&x| x * x).sum::<f32>() / audio_chunk.len() as f32;
+                        is_silence = energy < 0.00005;
+                    }
+
+                    // 更新静音计数器
+                    if is_silence {
+                        silence_chunks += 1;
+                        if silence_chunks == silence_threshold {
+                            info!("Continuous silence detected ({} chunks, ~3s), will stop sending if continues", silence_chunks);
+                        }
+                    } else {
+                        if silence_chunks > 0 {
+                            debug!("Voice detected, resetting silence counter (was {})", silence_chunks);
+                        }
+                        silence_chunks = 0;
+                    }
+
+                    // 如果连续静音超过阈值，跳过发送（但继续处理，保持流畅）
+                    if silence_chunks >= silence_threshold {
+                        buffer.recycle(audio_chunk);
+                        continue;
+                    }
+
                     // 重采样
                     if let Some(ref mut r) = resampler {
-                        match r.process(&audio_chunk) {
+                        match r.process(&processed_chunk) {
                             Ok(resampled) => {
                                 // 量化为 i16
                                 let i16_samples = AudioResampler::quantize_to_i16(&resampled);

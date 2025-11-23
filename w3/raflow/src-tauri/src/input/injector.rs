@@ -54,6 +54,8 @@ pub struct InjectionConfig {
     pub enable_blacklist: bool,
     /// 最大文本长度限制
     pub max_text_length: usize,
+    /// 是否自动模拟粘贴快捷键（false 则只写入剪贴板，不自动粘贴）
+    pub auto_paste: bool,
 }
 
 impl Default for InjectionConfig {
@@ -64,6 +66,7 @@ impl Default for InjectionConfig {
             focus_wait_ms: 50,
             enable_blacklist: true,
             max_text_length: 10000,
+            auto_paste: false, // 默认禁用自动粘贴，避免 enigo 导致程序退出
         }
     }
 }

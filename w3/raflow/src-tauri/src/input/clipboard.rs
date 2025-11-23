@@ -44,12 +44,13 @@ impl ClipboardInjector {
     /// # 流程
     /// 1. 保存当前剪贴板内容
     /// 2. 写入新文本到剪贴板
-    /// 3. 模拟 Cmd+V/Ctrl+V 粘贴
+    /// 3. (可选) 模拟 Cmd+V/Ctrl+V 粘贴
     /// 4. 等待粘贴完成
     /// 5. 恢复旧剪贴板内容
     ///
     /// # Arguments
     /// * `text` - 要注入的文本
+    /// * `auto_paste` - 是否自动模拟粘贴快捷键
     ///
     /// # Example
     /// ```no_run
@@ -57,10 +58,10 @@ impl ClipboardInjector {
     ///
     /// async fn inject_text(app: tauri::AppHandle) {
     ///     let injector = ClipboardInjector::new(app);
-    ///     injector.inject_via_clipboard("Long text here...").await.unwrap();
+    ///     injector.inject_via_clipboard("Long text here...", true).await.unwrap();
     /// }
     /// ```
-    pub async fn inject_via_clipboard(&self, text: &str) -> Result<()> {
+    pub async fn inject_via_clipboard(&self, text: &str, auto_paste: bool) -> Result<()> {
         debug!("Injecting via clipboard: {} chars", text.len());
 
         // 1. 保存当前剪贴板内容

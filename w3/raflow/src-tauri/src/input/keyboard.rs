@@ -5,7 +5,7 @@
 use enigo::{Direction, Enigo, Key, Keyboard, Settings};
 use thiserror::Error;
 use tokio::time::{Duration, sleep};
-use tracing::debug;
+use tracing::{debug, error};
 
 #[derive(Error, Debug)]
 pub enum KeyboardError {
@@ -71,15 +71,25 @@ impl KeyboardInjector {
 
         #[cfg(target_os = "macos")]
         {
-            self.enigo
-                .key(Key::Meta, Direction::Press)
-                .map_err(|e| KeyboardError::TypeFailed(e.to_string()))?;
-            self.enigo
-                .key(Key::Unicode('v'), Direction::Click)
-                .map_err(|e| KeyboardError::TypeFailed(e.to_string()))?;
-            self.enigo
-                .key(Key::Meta, Direction::Release)
-                .map_err(|e| KeyboardError::TypeFailed(e.to_string()))?;
+            // 添加错误处理，避免 enigo 崩溃导致程序退出
+            if let Err(e) = self.enigo.key(Key::Meta, Direction::Press) {
+                error!("Failed to press Meta key: {}", e);
+                return Err(KeyboardError::TypeFailed(e.to_string()));
+            }
+
+            if let Err(e) = self.enigo.key(Key::Unicode('v'), Direction::Click) {
+                error!("Failed to click 'v' key: {}", e);
+                // 尝试释放 Meta 键避免卡住
+                let _ = self.enigo.key(Key::Meta, Direction::Release);
+                return Err(KeyboardError::TypeFailed(e.to_string()));
+            }
+
+            if let Err(e) = self.enigo.key(Key::Meta, Direction::Release) {
+                error!("Failed to release Meta key: {}", e);
+                return Err(KeyboardError::TypeFailed(e.to_string()));
+            }
+
+            debug!("Paste shortcut simulated successfully");
         }
 
         #[cfg(not(target_os = "macos"))]

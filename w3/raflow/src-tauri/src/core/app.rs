@@ -7,7 +7,7 @@ use crate::config::AppConfig;
 use crate::input::{InjectionConfig, TextInjector};
 use crate::network::{NetworkManager, ServerMessage};
 use crate::system::WindowTracker;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use thiserror::Error;
 use tokio::sync::mpsc;
 use tracing::{debug, error, info, warn};
@@ -204,8 +204,20 @@ impl AppController {
                     let app_for_injection = app.clone();
                     let text_for_injection = text.clone();
 
+                    // 先隐藏 overlay（在异步任务外）
+                    if let Some(overlay) = app.get_webview_window("overlay") {
+                        if let Err(e) = overlay.hide() {
+                            error!("Failed to hide overlay: {}", e);
+                        } else {
+                            debug!("Overlay hidden before window detection");
+                        }
+                    }
+
                     tokio::task::spawn_blocking(move || {
-                        // 获取当前窗口
+                        // 等待焦点切换完成
+                        std::thread::sleep(std::time::Duration::from_millis(300));
+
+                        // 现在获取当前窗口（应该是目标窗口了）
                         let window = match WindowTracker::get_current_window() {
                             Ok(w) => w,
                             Err(e) => {
