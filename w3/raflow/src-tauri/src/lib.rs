@@ -1,7 +1,9 @@
 pub mod audio;
 mod commands;
+pub mod input;
 pub mod network;
 mod state;
+pub mod system;
 
 use anyhow::Result;
 use tauri::Manager;
