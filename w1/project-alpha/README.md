@@ -153,7 +153,44 @@ uv run pytest -v
 
 ## 部署
 
-### 生产环境变量
+### Docker 部署（推荐）
+
+使用 Docker Compose 一键启动整个应用栈：
+
+```bash
+# 构建并启动所有服务
+docker-compose up --build -d
+
+# 查看服务状态
+docker-compose ps
+
+# 查看日志
+docker-compose logs -f
+
+# 停止服务
+docker-compose down
+
+# 停止并清除数据
+docker-compose down -v
+```
+
+服务架构：
+
+```
+localhost:3000 (frontend/nginx)
+├── /api/* → backend:8000
+└── /* → React SPA
+            ↓
+       postgres:5432
+```
+
+访问地址：
+- 应用: http://localhost:3000
+- API 文档: http://localhost:3000/api/v1/docs
+
+### 本地开发部署
+
+#### 生产环境变量
 
 创建 `backend/.env.production`:
 
@@ -163,14 +200,11 @@ ENVIRONMENT=production
 ALLOWED_ORIGINS=https://yourdomain.com
 ```
 
-### 启动应用
+#### 启动应用
 
-使用 Makefile 启动应用（推荐，从项目根目录运行）：
+使用 Makefile 启动应用（从项目根目录运行）：
 
 ```bash
-# 从项目根目录运行
-cd /Users/tchen/projects/mycode/bootcamp/ai
-
 # 启动应用
 make w1-start
 
@@ -179,17 +213,6 @@ make w1-stop
 
 # 安装依赖
 make w1-install
-
-# 查看所有可用命令
-make help
-```
-
-或者使用 `start.sh` 脚本（已废弃，推荐使用 Makefile）：
-
-```bash
-cd w1/project-alpha
-chmod +x start.sh
-./start.sh
 ```
 
 ## 许可证
