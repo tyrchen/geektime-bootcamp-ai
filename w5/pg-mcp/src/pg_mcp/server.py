@@ -5,6 +5,7 @@ functionality as an MCP tool. It includes complete lifespan management for
 initializing and cleaning up all components.
 """
 
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
@@ -14,7 +15,7 @@ from mcp.server.fastmcp import FastMCP
 
 from pg_mcp.cache.schema_cache import SchemaCache
 from pg_mcp.config.settings import Settings
-from pg_mcp.db.pool import close_pools, create_pool
+from pg_mcp.db.pool import close_pools, create_pools
 from pg_mcp.models.query import QueryRequest, QueryResponse, ReturnType
 from pg_mcp.observability.logging import configure_logging, get_logger
 from pg_mcp.observability.metrics import MetricsCollector
@@ -96,17 +97,22 @@ async def lifespan(_app: FastMCP) -> AsyncIterator[None]:  # type: ignore[type-a
 
         # 3. Create database connection pools
         logger.info("Creating database connection pools...")
-        _pools = {}
-        # Note: For single database configuration, we use the main database config
-        pool = await create_pool(_settings.database)
-        _pools[_settings.database.name] = pool
+        _pools = await create_pools(_settings.databases)
         logger.info(
-            f"Created connection pool for database '{_settings.database.name}'",
-            extra={
-                "min_size": _settings.database.min_pool_size,
-                "max_size": _settings.database.max_pool_size,
-            },
+            f"Created connection pools for {len(_pools)} database(s)",
+            extra={"databases": list(_pools.keys())},
         )
+
+        # Initialize pool metrics
+        _metrics = MetricsCollector()
+        for db_name, pool in _pools.items():
+            # Set initial connection metrics
+            size = pool.get_size()
+            _metrics.set_db_connections_active(db_name, size)
+            logger.debug(
+                f"Pool metrics initialized for '{db_name}'",
+                extra={"pool_size": size},
+            )
 
         # 4. Load Schema cache
         logger.info("Initializing schema cache...")
@@ -152,21 +158,22 @@ async def lifespan(_app: FastMCP) -> AsyncIterator[None]:  # type: ignore[type-a
         # SQL Validator
         sql_validator = SQLValidator(
             config=_settings.security,
-            blocked_tables=None,  # Can be configured via settings if needed
-            blocked_columns=None,  # Can be configured via settings if needed
-            allow_explain=False,
+            blocked_tables=_settings.security.blocked_tables,
+            blocked_columns=_settings.security.blocked_columns,
+            allow_explain=_settings.security.allow_explain,
         )
 
         # SQL Executor (create one per database)
         sql_executors: dict[str, SQLExecutor] = {}
-        for db_name, pool in _pools.items():
+        for db_config in _settings.databases:
+            pool = _pools[db_config.name]
             executor = SQLExecutor(
                 pool=pool,
                 security_config=_settings.security,
-                db_config=_settings.database,
+                db_config=db_config,
             )
-            sql_executors[db_name] = executor
-            logger.info(f"Created SQL executor for database '{db_name}'")
+            sql_executors[db_config.name] = executor
+            logger.info(f"Created SQL executor for database '{db_config.name}'")
 
         # Result Validator
         result_validator = ResultValidator(
@@ -194,12 +201,14 @@ async def lifespan(_app: FastMCP) -> AsyncIterator[None]:  # type: ignore[type-a
         _orchestrator = QueryOrchestrator(
             sql_generator=sql_generator,
             sql_validator=sql_validator,
-            sql_executor=sql_executors[_settings.database.name],  # Use primary executor
+            sql_executors=sql_executors,  # Pass dict of executors
             result_validator=result_validator,
             schema_cache=_schema_cache,
             pools=_pools,
+            settings=_settings,
             resilience_config=_settings.resilience,
             validation_config=_settings.validation,
+            rate_limiter=_rate_limiter,  # Pass rate limiter instance
         )
 
         logger.info("PostgreSQL MCP Server initialization complete!")
@@ -212,8 +221,35 @@ async def lifespan(_app: FastMCP) -> AsyncIterator[None]:  # type: ignore[type-a
             },
         )
 
+        # Start background metrics update task
+        async def update_pool_metrics():
+            """Background task to update connection pool metrics."""
+            while True:
+                try:
+                    if _pools and _metrics:
+                        for db_name, pool in _pools.items():
+                            size = pool.get_size()
+                            free = pool.get_idle_size()
+                            active = size - free
+                            _metrics.set_db_connections_active(db_name, active)
+                    await asyncio.sleep(10)  # Update every 10 seconds
+                except asyncio.CancelledError:
+                    break
+                except Exception as e:
+                    logger.error(f"Error updating pool metrics: {e!s}")
+                    await asyncio.sleep(10)
+
+        metrics_task = asyncio.create_task(update_pool_metrics())
+
         # Yield to run the server
         yield
+
+        # Cancel metrics task on shutdown
+        metrics_task.cancel()
+        try:
+            await metrics_task
+        except asyncio.CancelledError:
+            pass
 
     finally:
         # Shutdown sequence
@@ -222,7 +258,6 @@ async def lifespan(_app: FastMCP) -> AsyncIterator[None]:  # type: ignore[type-a
         # Stop schema auto-refresh with timeout
         if _schema_cache is not None:
             try:
-                import asyncio
                 await asyncio.wait_for(
                     _schema_cache.stop_auto_refresh(),
                     timeout=3.0
@@ -247,6 +282,85 @@ async def lifespan(_app: FastMCP) -> AsyncIterator[None]:  # type: ignore[type-a
 
 # Create FastMCP server instance with lifespan
 mcp = FastMCP("pg-mcp", lifespan=lifespan)
+
+
+@mcp.tool()
+async def health() -> dict[str, Any]:
+    """Health check endpoint for monitoring server status.
+
+    This endpoint provides comprehensive health information about the server
+    and its dependencies, including database connections, schema cache status,
+    and component availability.
+
+    Returns:
+        dict: Health status containing:
+            - status (str): Overall health status ("healthy", "degraded", "unhealthy")
+            - timestamp (str): ISO timestamp of health check
+            - components (dict): Status of individual components
+            - metrics (dict): Current metric values
+
+    Example:
+        >>> health_status = await health()
+        >>> if health_status["status"] == "healthy":
+        ...     print("Server is healthy")
+    """
+    import datetime
+    
+    global _pools, _schema_cache, _orchestrator, _settings
+    
+    timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    
+    # Check database connections
+    db_status = {}
+    all_healthy = True
+    
+    if _pools:
+        for db_name, pool in _pools.items():
+            try:
+                # Get pool statistics
+                size = pool.get_size()
+                free = pool.get_idle_size()
+                
+                db_status[db_name] = {
+                    "status": "healthy",
+                    "pool_size": size,
+                    "free_connections": free,
+                    "active_connections": size - free,
+                }
+            except Exception as e:
+                db_status[db_name] = {
+                    "status": "unhealthy",
+                    "error": str(e),
+                }
+                all_healthy = False
+    else:
+        all_healthy = False
+    
+    # Check schema cache
+    cache_status = "healthy" if _schema_cache else "unhealthy"
+    if _schema_cache and not all_healthy:
+        cache_status = "degraded"
+    
+    # Overall status
+    if not _pools or not _orchestrator:
+        overall_status = "unhealthy"
+    elif not all_healthy:
+        overall_status = "degraded"
+    else:
+        overall_status = "healthy"
+    
+    return {
+        "status": overall_status,
+        "timestamp": timestamp,
+        "components": {
+            "databases": db_status,
+            "schema_cache": cache_status,
+            "orchestrator": "healthy" if _orchestrator else "unhealthy",
+        },
+        "metrics": {
+            "database_count": len(_pools) if _pools else 0,
+        },
+    }
 
 
 @mcp.tool()

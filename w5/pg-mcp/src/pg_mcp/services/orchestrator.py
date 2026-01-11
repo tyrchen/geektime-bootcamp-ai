@@ -6,13 +6,14 @@ validation. It implements retry logic, error handling, and request tracking.
 """
 
 import logging
+import time
 import uuid
 from typing import Any
 
 from asyncpg import Pool
 
 from pg_mcp.cache.schema_cache import SchemaCache
-from pg_mcp.config.settings import ResilienceConfig, ValidationConfig
+from pg_mcp.config.settings import ResilienceConfig, Settings, ValidationConfig
 from pg_mcp.models.errors import (
     DatabaseError,
     ErrorCode,
@@ -30,7 +31,9 @@ from pg_mcp.models.query import (
     ReturnType,
     ValidationResult,
 )
+from pg_mcp.observability.metrics import metrics
 from pg_mcp.resilience.circuit_breaker import CircuitBreaker
+from pg_mcp.resilience.rate_limiter import MultiRateLimiter
 from pg_mcp.services.result_validator import ResultValidator
 from pg_mcp.services.sql_executor import SQLExecutor
 from pg_mcp.services.sql_generator import SQLGenerator
@@ -67,31 +70,36 @@ class QueryOrchestrator:
         self,
         sql_generator: SQLGenerator,
         sql_validator: SQLValidator,
-        sql_executor: SQLExecutor,
+        sql_executors: dict[str, SQLExecutor],
         result_validator: ResultValidator,
         schema_cache: SchemaCache,
         pools: dict[str, Pool],
+        settings: Settings,
         resilience_config: ResilienceConfig,
         validation_config: ValidationConfig,
+        rate_limiter: MultiRateLimiter | None = None,
     ) -> None:
         """Initialize query orchestrator.
 
         Args:
             sql_generator: SQL generation service.
             sql_validator: SQL validation service.
-            sql_executor: SQL execution service.
+            sql_executors: Dictionary mapping database names to SQL executors.
             result_validator: Result validation service.
             schema_cache: Schema cache instance.
             pools: Dictionary mapping database names to connection pools.
+            settings: Application settings for database resolution.
             resilience_config: Resilience configuration for retries and circuit breaker.
             validation_config: Validation configuration including thresholds.
+            rate_limiter: Optional rate limiter for concurrent operations.
         """
         self.sql_generator = sql_generator
         self.sql_validator = sql_validator
-        self.sql_executor = sql_executor
+        self.sql_executors = sql_executors
         self.result_validator = result_validator
         self.schema_cache = schema_cache
         self.pools = pools
+        self.settings = settings
         self.resilience_config = resilience_config
         self.validation_config = validation_config
 
@@ -99,6 +107,12 @@ class QueryOrchestrator:
         self.circuit_breaker = CircuitBreaker(
             failure_threshold=resilience_config.circuit_breaker_threshold,
             recovery_timeout=resilience_config.circuit_breaker_timeout,
+        )
+
+        # Create rate limiter if not provided
+        self.rate_limiter = rate_limiter or MultiRateLimiter(
+            query_limit=10,
+            llm_limit=5,
         )
 
     async def execute_query(self, request: QueryRequest) -> QueryResponse:
@@ -128,12 +142,23 @@ class QueryOrchestrator:
         """
         # Generate request_id for full-chain tracing
         request_id = str(uuid.uuid4())
+        start_time = time.time()
+        database_name: str | None = None
+        
         logger.info(
             "Starting query execution",
             extra={"request_id": request_id, "question": request.question[:100]},
         )
 
         try:
+            # Step 0: Validate input question length
+            if len(request.question) > self.validation_config.max_question_length:
+                raise PgMcpError(
+                    code=ErrorCode.INVALID_INPUT,
+                    message=f"Question exceeds maximum length of {self.validation_config.max_question_length} characters",
+                    details={"question_length": len(request.question)},
+                )
+
             # Step 1: Resolve database name
             database_name = self._resolve_database(request.database)
             logger.debug(
@@ -195,7 +220,17 @@ class QueryOrchestrator:
             logger.debug("Executing SQL", extra={"request_id": request_id})
             start_time = self._get_current_time_ms()
 
-            results, total_count = await self.sql_executor.execute(generated_sql)
+            # Get the correct executor for this database
+            executor = self.sql_executors.get(database_name)
+            if executor is None:
+                raise DatabaseError(
+                    message=f"No executor available for database '{database_name}'",
+                    details={"database": database_name},
+                )
+
+            # Apply rate limiting to database execution
+            async with self.rate_limiter.for_queries(timeout=30.0):
+                results, total_count = await executor.execute(generated_sql)
 
             execution_time_ms = self._get_current_time_ms() - start_time
             logger.info(
@@ -224,6 +259,11 @@ class QueryOrchestrator:
                 execution_time_ms=execution_time_ms,
             )
 
+            # Record successful query metrics
+            total_duration = time.time() - start_time
+            metrics.query_duration.observe(total_duration)
+            metrics.increment_query_request("success", database_name)
+
             return QueryResponse(
                 success=True,
                 generated_sql=generated_sql,
@@ -244,6 +284,11 @@ class QueryOrchestrator:
                     "error_message": str(e),
                 },
             )
+            
+            # Record error metrics
+            if database_name:
+                metrics.increment_query_request("error", database_name)
+            
             return QueryResponse(
                 success=False,
                 generated_sql=None,
@@ -263,6 +308,11 @@ class QueryOrchestrator:
                 "Query execution failed with unexpected error",
                 extra={"request_id": request_id},
             )
+            
+            # Record error metrics
+            if database_name:
+                metrics.increment_query_request("error", database_name)
+            
             return QueryResponse(
                 success=False,
                 generated_sql=None,
@@ -385,13 +435,14 @@ class QueryOrchestrator:
                     },
                 )
 
-                # Generate SQL
-                generated_sql = await self.sql_generator.generate(
-                    question=question,
-                    schema=schema,
-                    previous_attempt=previous_sql,
-                    error_feedback=error_feedback,
-                )
+                # Generate SQL with rate limiting
+                async with self.rate_limiter.for_llm(timeout=60.0):
+                    generated_sql = await self.sql_generator.generate(
+                        question=question,
+                        schema=schema,
+                        previous_attempt=previous_sql,
+                        error_feedback=error_feedback,
+                    )
 
                 # Note: tokens_used would come from OpenAI response metadata if available
                 # For now, we don't extract it, but it can be added later

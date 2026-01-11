@@ -7,6 +7,8 @@ result serialization, and row limiting to prevent memory overflow.
 import asyncio
 import datetime
 import decimal
+import logging
+import time
 import uuid
 from typing import Any
 
@@ -15,6 +17,10 @@ from asyncpg import Connection, Pool
 
 from pg_mcp.config.settings import DatabaseConfig, SecurityConfig
 from pg_mcp.models.errors import DatabaseError, ExecutionTimeoutError
+from pg_mcp.observability.metrics import metrics
+from pg_mcp.resilience.retry import RetryConfig, retry_with_backoff
+
+logger = logging.getLogger(__name__)
 
 
 class SQLExecutor:
@@ -37,6 +43,7 @@ class SQLExecutor:
         pool: Pool,
         security_config: SecurityConfig,
         db_config: DatabaseConfig,
+        retry_config: RetryConfig | None = None,
     ) -> None:
         """Initialize SQL executor.
 
@@ -44,10 +51,17 @@ class SQLExecutor:
             pool: asyncpg connection pool for database connections.
             security_config: Security configuration including timeouts and limits.
             db_config: Database configuration including connection parameters.
+            retry_config: Optional retry configuration. Uses defaults if None.
         """
         self.pool = pool
         self.security_config = security_config
         self.db_config = db_config
+        self.retry_config = retry_config or RetryConfig(
+            max_attempts=3,
+            initial_delay=1.0,
+            backoff_factor=2.0,
+            max_delay=30.0,
+        )
 
     async def execute(
         self,
@@ -55,13 +69,13 @@ class SQLExecutor:
         timeout: float | None = None,  # noqa: ASYNC109
         max_rows: int | None = None,
     ) -> tuple[list[dict[str, Any]], int]:
-        """Execute SQL query with security measures.
+        """Execute SQL query with security measures and retry logic.
 
         This method:
         1. Acquires a connection from the pool
         2. Starts a read-only transaction
         3. Sets session parameters (timeout, search_path, role)
-        4. Executes the query with timeout
+        4. Executes the query with timeout and retry on transient failures
         5. Limits the number of returned rows
         6. Serializes special PostgreSQL types
 
@@ -91,6 +105,39 @@ class SQLExecutor:
         timeout = timeout or self.security_config.max_execution_time
         max_rows = max_rows or self.security_config.max_rows
 
+        # Wrap execution in retry logic for transient failures
+        return await retry_with_backoff(
+            self._execute_with_connection,
+            self.retry_config,
+            sql,
+            timeout,
+            max_rows,
+        )
+
+    async def _execute_with_connection(
+        self,
+        sql: str,
+        timeout: float,
+        max_rows: int,
+    ) -> tuple[list[dict[str, Any]], int]:
+        """Internal method to execute query with a connection.
+
+        This method is wrapped by retry logic to handle transient failures.
+
+        Args:
+            sql: SQL query to execute.
+            timeout: Query timeout in seconds.
+            max_rows: Maximum rows to return.
+
+        Returns:
+            tuple: (results, total_row_count)
+
+        Raises:
+            ExecutionTimeoutError: If query execution exceeds timeout.
+            DatabaseError: If database operation fails.
+        """
+        query_start_time = time.time()
+        
         try:
             async with (
                 self.pool.acquire() as connection,
@@ -127,10 +174,14 @@ class SQLExecutor:
                 # Serialize special PostgreSQL types
                 results = self._serialize_results(results)
 
+                # Record successful query metrics
+                query_duration = time.time() - query_start_time
+                metrics.observe_db_query_duration(query_duration)
+
                 return results, total_count
 
         except ExecutionTimeoutError:
-            # Re-raise timeout errors as-is
+            # Re-raise timeout errors as-is (don't retry)
             raise
         except asyncpg.PostgresError as e:
             # Wrap PostgreSQL errors

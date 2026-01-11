@@ -32,7 +32,7 @@ async def create_pool(config: DatabaseConfig) -> Pool:
     pool = await asyncpg.create_pool(
         host=config.host,
         port=config.port,
-        database=config.name,
+        database=config.database,
         user=config.user,
         password=config.password,
         min_size=config.min_pool_size,

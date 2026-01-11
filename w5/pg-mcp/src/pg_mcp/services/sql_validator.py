@@ -12,6 +12,7 @@ from sqlglot import exp
 
 from pg_mcp.config.settings import SecurityConfig
 from pg_mcp.models.errors import SecurityViolationError, SQLParseError
+from pg_mcp.observability.metrics import metrics
 
 
 class SQLValidator:
@@ -136,6 +137,7 @@ class SQLValidator:
 
         # Check for multiple statements
         if len(parsed) > 1:
+            metrics.increment_sql_rejected("multiple_statements")
             raise SecurityViolationError(
                 "Multiple statements not allowed. Only single SELECT queries are permitted."
             )
@@ -155,6 +157,7 @@ class SQLValidator:
             cmd_name = str(statement.this).upper() if statement.this else ""
             if cmd_name == "EXPLAIN":
                 if not self.allow_explain:
+                    metrics.increment_sql_rejected("explain_not_allowed")
                     raise SecurityViolationError("EXPLAIN statements are not allowed")
                 # EXPLAIN is read-only and safe - it only shows query plans without executing.
                 # sqlglot 28.5.0 cannot parse EXPLAIN syntax reliably (falls back to Command),
@@ -163,6 +166,7 @@ class SQLValidator:
                 return None
             else:
                 # Other commands are not allowed
+                metrics.increment_sql_rejected("forbidden_command")
                 raise SecurityViolationError(
                     f"Command '{cmd_name}' is not allowed. Only SELECT queries are permitted."
                 )
@@ -179,18 +183,23 @@ class SQLValidator:
 
         # Perform security checks
         if error := self._check_statement_type(main_query):
+            metrics.increment_sql_rejected("forbidden_statement_type")
             raise SecurityViolationError(error)
 
         if error := self._check_dangerous_functions(statement):
+            metrics.increment_sql_rejected("dangerous_function")
             raise SecurityViolationError(error)
 
         if error := self._check_blocked_tables(statement):
+            metrics.increment_sql_rejected("blocked_table")
             raise SecurityViolationError(error)
 
         if error := self._check_blocked_columns(statement):
+            metrics.increment_sql_rejected("blocked_column")
             raise SecurityViolationError(error)
 
         if error := self._check_subquery_safety(statement):
+            metrics.increment_sql_rejected("unsafe_subquery")
             raise SecurityViolationError(error)
 
     def _check_statement_type(self, statement: exp.Expression) -> str | None:

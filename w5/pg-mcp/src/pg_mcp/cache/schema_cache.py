@@ -14,6 +14,7 @@ from asyncpg import Pool
 from pg_mcp.config.settings import CacheConfig
 from pg_mcp.db.introspection import SchemaIntrospector
 from pg_mcp.models.schema import DatabaseSchema
+from pg_mcp.observability.metrics import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +76,9 @@ class SchemaCache:
             self._cache_timestamps.pop(database_name, None)
             return None
 
+        # Update cache age metric
+        metrics.set_schema_cache_age(database_name, cache_age)
+
         return self._cache[database_name]
 
     async def load(
@@ -107,6 +111,8 @@ class SchemaCache:
         if self.config.enabled:
             self._cache[database_name] = schema
             self._cache_timestamps[database_name] = datetime.now(UTC)
+            # Reset cache age metric to 0 after reload
+            metrics.set_schema_cache_age(database_name, 0.0)
 
         return schema
 

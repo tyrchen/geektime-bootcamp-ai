@@ -3,7 +3,7 @@ name = "pg-mcp"
 version = "0.2.1"
 description = "PostgreSQL MCP Server - Natural Language to SQL"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.11"
 dependencies = [
     "asyncpg>=0.31.0",
     "sqlglot>=28.5.0",

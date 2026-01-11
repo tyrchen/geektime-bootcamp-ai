@@ -5,12 +5,14 @@ natural language questions into valid PostgreSQL SQL queries.
 """
 
 import re
+import time
 from typing import TYPE_CHECKING
 
 from openai import AsyncOpenAI
 
 from pg_mcp.config.settings import OpenAIConfig
 from pg_mcp.models.errors import LLMError, LLMTimeoutError, LLMUnavailableError
+from pg_mcp.observability.metrics import metrics
 from pg_mcp.prompts.sql_generation import SQL_GENERATION_SYSTEM_PROMPT, build_user_prompt
 
 if TYPE_CHECKING:
@@ -95,6 +97,10 @@ class SQLGenerator:
             error_feedback=error_feedback,
         )
 
+        # Track LLM call metrics
+        start_time = time.time()
+        metrics.increment_llm_call("generate_sql")
+
         try:
             response: ChatCompletion = await self.client.chat.completions.create(
                 model=self.config.model,
@@ -105,12 +111,30 @@ class SQLGenerator:
                 temperature=self.config.temperature,
                 max_tokens=self.config.max_tokens,
             )
+            
+            # Record successful LLM latency
+            latency = time.time() - start_time
+            metrics.observe_llm_latency("generate_sql", latency)
+            
+            # Record token usage if available
+            if response.usage:
+                total_tokens = response.usage.total_tokens
+                metrics.increment_llm_tokens("generate_sql", total_tokens)
+                
         except TimeoutError as e:
+            # Record latency even on timeout
+            latency = time.time() - start_time
+            metrics.observe_llm_latency("generate_sql", latency)
+            
             raise LLMTimeoutError(
                 message=f"OpenAI API request timed out after {self.config.timeout}s",
                 details={"timeout": self.config.timeout},
             ) from e
         except Exception as e:
+            # Record latency on errors
+            latency = time.time() - start_time
+            metrics.observe_llm_latency("generate_sql", latency)
+            
             # Handle various OpenAI errors
             error_msg = str(e)
             if "authentication" in error_msg.lower() or "api_key" in error_msg.lower():
