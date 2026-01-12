@@ -1,0 +1,30 @@
+[project]
+name = "genslides-backend"
+version = "0.1.0"
+description = "GenSlides - AI image slideshow generator backend"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.128.0",
+    "uvicorn[standard]>=0.40.0",
+    "google-genai>=1.57.0",
+    "blake3>=1.0.8",
+    "pyyaml>=6.0.3",
+    "pydantic-settings>=2.12.0",
+    "python-multipart>=0.0.21",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+    "httpx>=0.28.1",
+    "ruff>=0.14.11",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]

@@ -944,20 +944,22 @@ def compute_blake3(content: str) -> str:
 # clients/gemini_client.py
 from google import genai
 from google.genai import types
-from PIL import Image
-from io import BytesIO
 from typing import Optional, List
 
 class GeminiClient:
     """Google AI SDK (Gemini) 图片生成客户端"""
 
-    MODEL_NAME = "gemini-3-pro-image-preview"
-    COST_PER_IMAGE = 0.02  # 单张图片生成成本（估算）
+    MODEL_NAME = "gemini-3-pro-image-preview"  # 图片生成专用模型
+    COST_PER_IMAGE = 0.134  # 单张图片生成成本
 
-    def __init__(self, api_key: str):
-        self.client = genai.Client(api_key=api_key)
+    def __init__(self, api_key: Optional[str] = None):
+        # 如果提供 api_key 则使用，否则从环境变量读取
+        if api_key:
+            self.client = genai.Client(api_key=api_key)
+        else:
+            self.client = genai.Client()  # 使用 GOOGLE_API_KEY 环境变量
 
-    def generate_image(
+    async def generate_image(
         self,
         prompt: str,
         style_image: Optional[bytes] = None
@@ -972,35 +974,35 @@ class GeminiClient:
         Returns:
             生成的图片二进制数据
         """
-        # 构建请求内容
         contents = []
 
-        # 如果有风格参考图片，先添加风格图片
         if style_image:
-            style_pil = Image.open(BytesIO(style_image))
-            contents.append(style_pil)
+            # 使用 Part.from_bytes 直接传递图片字节数据
+            image_part = types.Part.from_bytes(data=style_image, mime_type="image/png")
+            contents.append(image_part)
             contents.append(f"请参考上面图片的风格，生成以下内容：{prompt}")
         else:
             contents.append(prompt)
 
-        # 调用 Gemini API 生成图片
         response = self.client.models.generate_content(
             model=self.MODEL_NAME,
             contents=contents,
+            config=types.GenerateContentConfig(
+                image_config=types.ImageConfig(
+                    aspect_ratio="16:9",
+                    image_size="2K",
+                )
+            ),
         )
 
-        # 从响应中提取图片
+        # 从响应中提取图片（直接获取原始字节数据）
         for part in response.parts:
             if part.inline_data is not None:
-                image = part.as_image()
-                # 转换为 bytes
-                buffer = BytesIO()
-                image.save(buffer, format="PNG")
-                return buffer.getvalue()
+                return part.inline_data.data
 
         raise ValueError("No image generated in response")
 
-    def generate_style_candidates(
+    async def generate_style_candidates(
         self,
         prompt: str,
         count: int = 2
@@ -1019,20 +1021,23 @@ class GeminiClient:
         style_prompt = f"生成一张展示「{prompt}」风格的示例图片，用于作为后续图片生成的风格参考"
 
         for i in range(count):
-            # 添加变化提示以生成不同的候选图片
             varied_prompt = f"{style_prompt}（变体 {i + 1}）"
 
             response = self.client.models.generate_content(
                 model=self.MODEL_NAME,
                 contents=[varied_prompt],
+                config=types.GenerateContentConfig(
+                    image_config=types.ImageConfig(
+                        aspect_ratio="16:9",
+                        image_size="2K",
+                    )
+                ),
             )
 
             for part in response.parts:
                 if part.inline_data is not None:
-                    image = part.as_image()
-                    buffer = BytesIO()
-                    image.save(buffer, format="PNG")
-                    candidates.append(buffer.getvalue())
+                    # 直接获取原始字节数据
+                    candidates.append(part.inline_data.data)
                     break
 
         return candidates
@@ -1041,7 +1046,7 @@ class GeminiClient:
 **依赖安装：**
 
 ```bash
-uv add google-genai pillow
+uv add google-genai
 ```
 
 ### 6.3 前端拖拽排序
@@ -1132,6 +1137,26 @@ SLIDES_BASE_PATH=./slides
 PORT=3003
 ```
 
+### 7.3 路由注册顺序
+
+由于多个路由模块共用 `/api/slides` 前缀，且存在模式匹配冲突（如 `/{slug}/{sid}` 会匹配 `/{slug}/style`），需要按照**特殊性从高到低**的顺序注册路由：
+
+```python
+# main.py - 路由注册顺序很重要！
+# 1. style 路由：/{slug}/style/... 最具体
+app.include_router(style.router)
+# 2. images 路由：/{slug}/{sid}/images/... 次具体
+app.include_router(images.router)
+# 3. cost 路由：/cost/{slug} 独立路径
+app.include_router(cost.router)
+# 4. slides 路由：/{slug}/{sid} 最通用，必须最后注册
+app.include_router(slides.router)
+```
+
+**注意**：如果顺序错误，`POST /api/slides/{slug}/style/generate` 会被 `PUT /api/slides/{slug}/{sid}` 错误匹配。
+
+---
+
 ## 8. 项目初始化与运行
 
 ### 8.1 后端初始化
@@ -1142,7 +1167,7 @@ uv init backend
 cd backend
 
 # 添加依赖
-uv add fastapi uvicorn google-genai pillow blake3 pyyaml pydantic-settings python-multipart
+uv add fastapi uvicorn google-genai blake3 pyyaml pydantic-settings python-multipart
 
 # 添加开发依赖
 uv add --dev pytest pytest-asyncio httpx ruff
@@ -1179,7 +1204,6 @@ dependencies = [
     "fastapi>=0.128.0",
     "uvicorn[standard]>=0.40.0",
     "google-genai>=1.56.0",
-    "pillow>=12.1.0",
     "blake3>=1.0.8",
     "pyyaml>=6.0.3",
     "pydantic-settings>=2.12.0",

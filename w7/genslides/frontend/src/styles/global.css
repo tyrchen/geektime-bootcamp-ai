@@ -214,6 +214,12 @@
     padding: var(--space-4) var(--space-6);
     font-size: var(--font-ui);
     margin: 0;
+    cursor: pointer;
+  }
+
+  .md-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .md-btn+.md-btn {
@@ -233,13 +239,32 @@
   }
 
   .md-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--md-graphite);
     background-color: var(--md-cream);
     color: var(--md-ink);
+    border-radius: var(--radius-micro);
+    text-transform: uppercase;
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 0.08em;
+    transition: all 0.2s ease-in-out;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-6);
+    font-size: var(--font-ui);
+    margin: 0;
+    cursor: pointer;
   }
 
   .md-btn-secondary:hover {
     transform: translate(2px, -2px);
     box-shadow: -6px 6px 0px 0px rgba(0, 0, 0, 1);
+  }
+
+  .md-btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .md-input {
@@ -279,6 +304,62 @@
   /* 确保卡片在 grid 中有足够的间距 */
   .grid .md-card {
     margin: 0;
+  }
+
+  /* Slide card styles */
+  .slide-card {
+    background-color: var(--md-cloud);
+    border: 2px solid var(--md-graphite);
+    border-radius: var(--radius-micro);
+    padding: var(--space-3);
+    cursor: pointer;
+    position: relative;
+    transition: transform var(--transition-quick), box-shadow var(--transition-quick);
+  }
+
+  .slide-card:hover {
+    transform: translate(2px, -2px);
+    box-shadow: -4px 4px 0px 0px rgba(0, 0, 0, 1);
+  }
+
+  .slide-card.selected {
+    background-color: var(--md-soft-blue);
+    border-color: var(--md-sky-strong);
+  }
+
+  .slide-card.dragging {
+    opacity: 0.5;
+    transform: scale(1.02);
+    box-shadow: -6px 6px 0px 0px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Insert indicator between slides */
+  .insert-indicator-wrapper {
+    position: relative;
+    height: 8px;
+    margin: var(--space-1) 0;
+    cursor: pointer;
+  }
+
+  .insert-indicator-line {
+    position: absolute;
+    left: var(--space-2);
+    right: var(--space-2);
+    top: 50%;
+    height: 3px;
+    background-color: transparent;
+    border-radius: 2px;
+    transform: translateY(-50%);
+    transition: background-color var(--transition-quick);
+  }
+
+  .insert-indicator-wrapper:hover .insert-indicator-line,
+  .insert-indicator-wrapper.active .insert-indicator-line {
+    background-color: var(--md-sky-strong);
+  }
+
+  .insert-indicator-wrapper.active .insert-indicator-line {
+    height: 4px;
   }
 
   /* 确保按钮组有足够的间距 */
