@@ -1,0 +1,326 @@
+@import "tailwindcss";
+@import "./design-tokens.css";
+
+@layer base {
+
+  *,
+  *::before,
+  *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    font-size: 16px;
+  }
+
+  body {
+    background-color: var(--md-cream);
+    color: var(--md-ink);
+    font-family: var(--font-family-primary);
+    font-size: var(--font-body);
+    line-height: var(--line-height-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-family-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--md-ink);
+    font-weight: var(--font-weight-bold);
+  }
+
+  h1 {
+    font-size: var(--font-hero);
+    line-height: var(--line-height-hero);
+  }
+
+  h2 {
+    font-size: var(--font-h2);
+    line-height: var(--line-height-heading);
+  }
+
+  h3 {
+    font-size: var(--font-h3);
+    line-height: var(--line-height-heading);
+  }
+
+  /* 确保所有 grid 布局有足够的间距 */
+  .grid {
+    gap: var(--space-6) !important;
+    margin: var(--space-4) !important;
+  }
+
+
+
+  p {
+    color: var(--md-ink);
+    margin-bottom: var(--space-4);
+  }
+
+  p:last-child {
+    margin-bottom: 0;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+    transition: color 150ms ease;
+    border-bottom: 2px solid transparent;
+  }
+
+  a:hover {
+    color: var(--md-sky-strong);
+    border-color: currentColor;
+  }
+
+  /* 确保文字颜色类正确应用 */
+  .text-ink {
+    color: var(--md-ink) !important;
+  }
+
+  .text-slate {
+    color: var(--md-slate) !important;
+  }
+
+  /* 确保段落文字有足够的可读性 */
+  .text-body {
+    font-size: var(--font-body);
+    line-height: var(--line-height-body);
+    color: var(--md-ink);
+  }
+}
+
+@layer components {
+  .md-shell {
+    min-height: 100vh;
+    background-color: var(--md-cream);
+    color: var(--md-ink);
+  }
+
+  .md-eyebrow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-transform: uppercase;
+    border-bottom: 2px solid var(--md-graphite);
+    background-color: var(--md-sunbeam);
+    letter-spacing: 0.08em;
+    padding-inline: clamp(16px, 4vw, 48px);
+    height: var(--eyebrow-desktop);
+  }
+
+  .md-container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: var(--container-max-width);
+    padding-inline: clamp(24px, 5vw, 48px);
+    padding-block: 0;
+  }
+
+  .mdx-content {
+    background-color: var(--md-fog);
+    padding: var(--space-8);
+  }
+
+  .md-section {
+    position: relative;
+    border-top: 2px solid var(--md-graphite);
+    background-color: var(--md-cream);
+    padding-block: var(--space-section);
+  }
+
+  .md-section:first-of-type {
+    border-top: none;
+  }
+
+  @media (max-width: 1024px) {
+    .md-section {
+      padding-block: calc(var(--space-section) * 0.8);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .md-section {
+      padding-block: calc(var(--space-section) * 0.7);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .md-section {
+      padding-block: calc(var(--space-section) * 0.6);
+    }
+  }
+
+  .md-section--sky {
+    background-color: var(--md-soft-blue);
+  }
+
+  .md-section--sunbeam {
+    background-color: var(--md-sunbeam);
+  }
+
+  .md-card {
+    background-color: var(--md-cloud);
+    border: 2px solid var(--md-graphite);
+    border-radius: var(--radius-micro);
+    transition: transform var(--transition-quick);
+    padding: var(--space-9);
+    margin-bottom: 0;
+  }
+
+  .md-card+.md-card {
+    margin-top: var(--space-10);
+  }
+
+  .md-card--highlight {
+    border: 4px solid var(--md-graphite);
+    background-color: var(--md-sunbeam);
+  }
+
+  .md-card-interactive {
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+  }
+
+  .md-card-interactive:hover {
+    transform: translate(2px, -2px);
+    box-shadow: -6px 6px 0px 0px rgba(0, 0, 0, 1);
+  }
+
+  .md-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--md-graphite);
+    background-color: var(--md-sky);
+    color: var(--md-ink);
+    border-radius: var(--radius-micro);
+    text-transform: uppercase;
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 0.08em;
+    transition: all 0.2s ease-in-out;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-6);
+    font-size: var(--font-ui);
+    margin: 0;
+  }
+
+  .md-btn+.md-btn {
+    margin-left: var(--space-4);
+  }
+
+  @media (max-width: 640px) {
+    .md-btn+.md-btn {
+      margin-left: 0;
+      margin-top: var(--space-4);
+    }
+  }
+
+  .md-btn:hover {
+    transform: translate(2px, -2px);
+    box-shadow: -6px 6px 0px 0px rgba(0, 0, 0, 1);
+  }
+
+  .md-btn-secondary {
+    background-color: var(--md-cream);
+    color: var(--md-ink);
+  }
+
+  .md-btn-secondary:hover {
+    transform: translate(2px, -2px);
+    box-shadow: -6px 6px 0px 0px rgba(0, 0, 0, 1);
+  }
+
+  .md-input {
+    width: 100%;
+    border: 2px solid var(--md-graphite);
+    background-color: var(--md-fog);
+    border-radius: var(--radius-micro);
+    padding: var(--space-4) var(--space-7);
+    font-size: var(--font-body);
+  }
+
+  .md-input:focus {
+    border-color: var(--md-sky-strong);
+    outline: none;
+  }
+
+  .md-badge {
+    display: inline-flex;
+    align-items: center;
+    border: 2px solid var(--md-graphite);
+    border-radius: var(--radius-micro);
+    background-color: var(--md-sunbeam);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    gap: var(--space-4);
+    padding: var(--space-1) var(--space-2);
+    margin-right: var(--space-2);
+    margin-bottom: var(--space-2);
+  }
+
+  .md-grid {
+    display: grid;
+    gap: var(--space-10);
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+
+  /* 确保卡片在 grid 中有足够的间距 */
+  .grid .md-card {
+    margin: 0;
+  }
+
+  /* 确保按钮组有足够的间距 */
+  .md-cta-stack .md-btn {
+    margin: 0;
+  }
+
+  /* Legacy helpers */
+  .section {
+    position: relative;
+    border-top: 2px solid var(--md-graphite);
+    background-color: var(--md-cream);
+    padding-block: var(--space-section);
+  }
+
+  nav a {
+    margin: var(--space-2);
+  }
+
+  .section:first-of-type {
+    border-top: none;
+  }
+
+  .section-white {
+    background-color: var(--md-cloud);
+  }
+
+  .section-gray {
+    background-color: var(--md-cream);
+  }
+
+  .section-sky {
+    background-color: var(--md-soft-blue);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .md-wave {
+    background-image: radial-gradient(circle at top, rgba(255, 255, 255, 0.8), transparent 60%);
+  }
+}

@@ -1,0 +1,138 @@
+/**
+ * MotherDuck-inspired Design Tokens (2024 MotherDuck site parity)
+ * 单一真实来源 - 所有设计变量定义
+ */
+
+:root {
+  /* ===== 颜色系统 ===== */
+  --md-cream: #F4EFEA;
+  /* page shell */
+  --md-sunbeam: #FFDE00;
+  /* eyebrow, promo strips */
+  --md-sunbeam-dark: #E3C300;
+  /* hover/pressed */
+  --md-sky: #6FC2FF;
+  /* primary CTA fill */
+  --md-sky-strong: #2BA5FF;
+  /* focus states */
+  --md-soft-blue: #EBF9FF;
+  /* sky sections */
+  --md-cloud: #FFFFFF;
+  /* cards */
+  --md-fog: #F8F8F7;
+  /* input backgrounds */
+  --md-ink: #383838;
+  /* primary text */
+  --md-slate: #A1A1A1;
+  /* secondary text */
+  --md-graphite: #000000;
+  /* structural strokes */
+  --md-grid-line: #E4D6C3;
+  /* graph-paper overlay */
+  --md-shadow: rgba(0, 0, 0, 0.08);
+  /* base hover shadow */
+
+  /* Legacy aliases (保持旧代码兼容，逐步迁移) */
+  --md-neutral-900: var(--md-ink);
+  --md-neutral-700: var(--md-slate);
+  --md-neutral-300: #B9B9B9;
+  --md-neutral-100: var(--md-cream);
+  --md-white: var(--md-cloud);
+  --md-black: var(--md-graphite);
+  --md-sun: var(--md-sunbeam);
+  --md-watermelon: #FF7169;
+
+  --md-gradient-sunrise: linear-gradient(135deg, #FFDE00 0%, #F4EFEA 100%);
+  --md-gradient-hero: linear-gradient(135deg, rgba(255, 222, 0, 0.4) 0%, rgba(111, 194, 255, 0.25) 100%);
+
+  /* ===== 品牌结构变量 ===== */
+  --header-mobile: 70px;
+  --header-desktop: 90px;
+  --eyebrow-mobile: 70px;
+  --eyebrow-desktop: 55px;
+
+  /* ===== 字体系统 ===== */
+  --font-family-primary: "Aeonik Mono", "Aeonik Fono", "Inter", "Helvetica Neue", sans-serif;
+  --font-family-alt: "Aeonik Fono", "Aeonik Mono", "Inter", sans-serif;
+  --font-hero: 72px;
+  --font-h1: 48px;
+  --font-h2: 32px;
+  --font-h3: 18px;
+  --font-body: 16px;
+  --font-ui: 14px;
+  --font-small: 14px;
+  --font-tiny: 12px;
+  --font-eyebrow: 12px;
+
+  --line-height-hero: 1.2;
+  --line-height-heading: 1.25;
+  --line-height-body: 1.5;
+
+  --font-weight-regular: 400;
+  --font-weight-bold: 700;
+
+  /* ===== 间距系统（基于 8px 网格） ===== */
+  --space-1: 4px;
+  --space-xs: 4px;
+  --space-2: 8px;
+  --space-sm: 12px;
+  --space-3: 12px;
+  --space-md: 16px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-lg: 24px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-xl: 32px;
+  --space-8: 40px;
+  --space-2xl: 48px;
+  --space-9: 48px;
+  --space-3xl: 64px;
+  --space-10: 64px;
+  --space-11: 80px;
+  --space-12: 96px;
+  --space-section: 96px;
+
+  --container-max-width: 1600px;
+
+  /* ===== 边框与阴影 ===== */
+  --radius-micro: 2px;
+  --border-strong: 2px solid var(--md-graphite);
+  --border-bold: 3px solid var(--md-graphite);
+  --shadow-translate: 0 7px 0 rgba(0, 0, 0, 1);
+
+  /* ===== 交互与动效 ===== */
+  --transition-quick: 120ms ease-in-out;
+  --transition-default: 240ms ease;
+  --translate-hover: translate(7px, -7px);
+
+  /* ===== 断点 ===== */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --font-hero: 64px;
+    --space-section: 96px;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --font-hero: 48px;
+    --font-h2: 28px;
+    --space-section: 72px;
+    --container-max-width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --font-hero: 36px;
+    --font-h2: 24px;
+    --font-body: 15px;
+    --space-section: 56px;
+  }
+}
