@@ -60,13 +60,13 @@ export function FullscreenPlayer() {
       ref={containerRef}
       className="fixed inset-0 bg-black flex flex-col z-50"
     >
-      {/* Main image area - image fills height */}
-      <div className="flex-1 flex items-center justify-center">
+      {/* Main image area */}
+      <div className="flex-1 flex items-center justify-center overflow-hidden">
         {currentImageUrl ? (
           <img
             src={currentImageUrl}
             alt={currentSlide.content}
-            className="h-full w-auto"
+            className="max-h-full max-w-full object-contain"
           />
         ) : (
           <div className="text-center text-white/60">
