@@ -24,7 +24,7 @@ interface SlideState {
 
   // Loading states
   isLoading: boolean;
-  isGeneratingImage: boolean;
+  generatingSlideId: string | null;  // Track which slide is generating
   isGeneratingStyle: boolean;
   isSaving: boolean;
   error: string | null;
@@ -71,7 +71,7 @@ export const useSlideStore = create<SlideState>()(
       styleCandidates: [],
       stylePrompt: '',
       isLoading: false,
-      isGeneratingImage: false,
+      generatingSlideId: null,
       isGeneratingStyle: false,
       isSaving: false,
       error: null,
@@ -271,13 +271,20 @@ export const useSlideStore = create<SlideState>()(
         const { slug } = get();
         if (!slug) return;
 
-        set({ isGeneratingImage: true, error: null });
+        set({ generatingSlideId: sid, error: null });
         try {
           const result = await imagesApi.generateImage(slug, sid);
-          const images = [...get().currentImages];
 
-          // Add new image at the beginning
-          images.unshift(result.image);
+          // Only update currentImages if still on the same slide
+          const { selectedSlideId } = get();
+          if (selectedSlideId === sid) {
+            const images = [...get().currentImages];
+            images.unshift(result.image);
+            set({
+              currentImages: images,
+              selectedImageIndex: 0,
+            });
+          }
 
           // Update total cost
           const newCost = get().totalCost + result.generation_cost;
@@ -285,19 +292,17 @@ export const useSlideStore = create<SlideState>()(
           // Update slide to show it has a matching image
           const slides = get().slides.map((s) =>
             s.sid === sid
-              ? { ...s, has_matching_image: true, image_count: s.image_count + 1 }
+              ? { ...s, has_matching_image: true, image_count: s.image_count + 1, latest_image: result.image.filename }
               : s
           );
 
           set({
-            currentImages: images,
-            selectedImageIndex: 0,
             totalCost: newCost,
             slides,
-            isGeneratingImage: false,
+            generatingSlideId: null,
           });
         } catch (e) {
-          set({ error: (e as Error).message, isGeneratingImage: false });
+          set({ error: (e as Error).message, generatingSlideId: null });
         }
       },
 

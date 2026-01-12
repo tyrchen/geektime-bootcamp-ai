@@ -12,12 +12,13 @@ export function ImagePreview({ slide }: ImagePreviewProps) {
     slug,
     currentImages,
     selectedImageIndex,
-    isGeneratingImage,
+    generatingSlideId,
     generateImage,
     selectImage,
   } = useSlideStore();
 
   const selectedImage = currentImages[selectedImageIndex];
+  const isGenerating = generatingSlideId === slide.sid;
 
   const handleGenerate = useCallback(() => {
     generateImage(slide.sid);
@@ -100,7 +101,7 @@ export function ImagePreview({ slide }: ImagePreviewProps) {
           onSelect={selectImage}
           getImageUrl={getImageUrl}
           onGenerate={showGeneratePrompt ? handleGenerate : undefined}
-          isGenerating={isGeneratingImage}
+          isGenerating={isGenerating}
         />
       </div>
     </div>
