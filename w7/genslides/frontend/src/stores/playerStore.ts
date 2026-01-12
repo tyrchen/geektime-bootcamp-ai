@@ -45,14 +45,19 @@ export const usePlayerStore = create<PlayerState>()(
 
       nextSlide: () => {
         const { currentIndex, totalSlides } = get();
-        const nextIndex = (currentIndex + 1) % totalSlides;
-        set({ currentIndex: nextIndex });
+        if (currentIndex >= totalSlides - 1) {
+          // On last slide, stop playback
+          get().stopPlayback();
+        } else {
+          set({ currentIndex: currentIndex + 1 });
+        }
       },
 
       prevSlide: () => {
-        const { currentIndex, totalSlides } = get();
-        const prevIndex = currentIndex === 0 ? totalSlides - 1 : currentIndex - 1;
-        set({ currentIndex: prevIndex });
+        const { currentIndex } = get();
+        if (currentIndex > 0) {
+          set({ currentIndex: currentIndex - 1 });
+        }
       },
 
       goToSlide: (index) => {

@@ -5,14 +5,11 @@ import { getSlideImageFilename, getSlideImageUrl } from '@/utils/slideImage';
 
 export function FullscreenPlayer() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const intervalRef = useRef<number | null>(null);
 
   const { slug, slides } = useSlideStore();
   const {
     isFullscreen,
-    isPlaying,
     currentIndex,
-    interval,
     nextSlide,
     prevSlide,
     goToSlide,
@@ -27,15 +24,6 @@ export function FullscreenPlayer() {
     ArrowRight: nextSlide,
     ArrowLeft: prevSlide,
     Escape: stopPlayback,
-    Space: () => {
-      // Toggle auto-play on space
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      } else {
-        intervalRef.current = window.setInterval(nextSlide, interval);
-      }
-    },
   });
 
   // Handle fullscreen
@@ -60,20 +48,6 @@ export function FullscreenPlayer() {
     };
   }, [isFullscreen, setFullscreen]);
 
-  // Auto-play timer
-  useEffect(() => {
-    if (isPlaying && isFullscreen) {
-      intervalRef.current = window.setInterval(nextSlide, interval);
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [isPlaying, isFullscreen, interval, nextSlide]);
-
   if (!isFullscreen || !currentSlide || !slug) return null;
 
   const currentImageFilename = getSlideImageFilename(currentSlide);
@@ -86,13 +60,19 @@ export function FullscreenPlayer() {
       ref={containerRef}
       className="fixed inset-0 bg-black flex flex-col z-50"
     >
-      {/* Main image area */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      {/* Main image area - full screen with minimal padding */}
+      <div className="flex-1 flex items-center justify-center p-4">
         {currentImageUrl ? (
           <img
             src={currentImageUrl}
             alt={currentSlide.content}
-            className="max-w-full max-h-full object-contain"
+            style={{
+              maxWidth: '100%',
+              maxHeight: '100%',
+              width: 'auto',
+              height: 'auto',
+              objectFit: 'contain',
+            }}
           />
         ) : (
           <div className="text-center text-white/60">
@@ -118,15 +98,15 @@ export function FullscreenPlayer() {
       </div>
 
       {/* Controls overlay */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
         {/* Progress indicators */}
-        <div className="flex justify-center gap-2 mb-4">
+        <div className="flex justify-center gap-2 mb-2">
           {slides.map((slide, index) => (
             <button
               key={slide.sid}
               onClick={() => goToSlide(index)}
               className={`
-                w-3 h-3 rounded-full transition-all
+                w-2 h-2 rounded-full transition-all
                 ${
                   index === currentIndex
                     ? 'bg-white scale-125'
@@ -138,19 +118,9 @@ export function FullscreenPlayer() {
           ))}
         </div>
 
-        {/* Slide info */}
-        <div className="text-center text-white">
-          <p className="text-sm opacity-60">
-            Slide {currentIndex + 1} of {slides.length}
-          </p>
-        </div>
-
-        {/* Keyboard hints */}
-        <div className="flex justify-center gap-6 mt-4 text-white/40 text-xs">
-          <span>← Previous</span>
-          <span>→ Next</span>
-          <span>Space: Toggle auto-play</span>
-          <span>ESC: Exit</span>
+        {/* Slide info and keyboard hints */}
+        <div className="text-center text-white/50 text-xs">
+          {currentIndex + 1} / {slides.length} · ← → to navigate · ESC to exit
         </div>
       </div>
 
