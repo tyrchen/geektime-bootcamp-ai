@@ -60,19 +60,13 @@ export function FullscreenPlayer() {
       ref={containerRef}
       className="fixed inset-0 bg-black flex flex-col z-50"
     >
-      {/* Main image area - full screen with minimal padding */}
-      <div className="flex-1 flex items-center justify-center p-4">
+      {/* Main image area - image fills height */}
+      <div className="flex-1 flex items-center justify-center">
         {currentImageUrl ? (
           <img
             src={currentImageUrl}
             alt={currentSlide.content}
-            style={{
-              maxWidth: '100%',
-              maxHeight: '100%',
-              width: 'auto',
-              height: 'auto',
-              objectFit: 'contain',
-            }}
+            className="h-full w-auto"
           />
         ) : (
           <div className="text-center text-white/60">
