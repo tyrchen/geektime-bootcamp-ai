@@ -36,7 +36,7 @@
     "vitest": "^4.0.16"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.25.1",
+    "@modelcontextprotocol/sdk": "^1.25.2",
     "openai": "^6.15.0",
     "zod": "^4.3.5"
   },
